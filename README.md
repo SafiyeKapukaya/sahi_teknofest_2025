@@ -1,8 +1,8 @@
 ![Yarışma Fotoğrafı](banner.jpg)
 
-# Havacılıkta Yapay Zeka Yarışması 2024 - TEKNOFEST
+# Havacılıkta Yapay Zeka Yarışması 2025 - TEKNOFEST
 
-Bu depo, TEKNOFEST kapsamında düzenlenen "Havacılıkta Yapay Zeka Yarışması 2024" için resmi GitHub deposudur. Yarışma, yapay zeka teknolojilerini havadan görüntüler alanında kullanarak, bu alandaki bilgi birikimi ve yetişmiş insan gücünü artırmayı amaçlamaktadır.
+Bu depo, TEKNOFEST kapsamında düzenlenen "Havacılıkta Yapay Zeka Yarışması 2025" için resmi GitHub deposudur. Yarışma, yapay zeka teknolojilerini havadan görüntüler alanında kullanarak, bu alandaki bilgi birikimi ve yetişmiş insan gücünü artırmayı amaçlamaktadır.
 
 
 ## Geçmiş sene veri setleri
