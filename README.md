@@ -24,7 +24,7 @@ Bu depo, TEKNOFEST kapsamında düzenlenen "Havacılıkta Yapay Zeka Yarışmas�
 - [**Nesne Tespiti:**](https://github.com/TEKNOFEST-YARISMALAR/ulasimda-yapay-zeka-yarismasi/blob/main/nesne%20tespiti.gif) Uçan arabanın kamera verilerini kullanarak taşıt ve insanların tespit edilmesi.
   ![nesnetespit](nesne%20tespiti.gif)
 - [**Pozisyon Tespiti:**](https://github.com/TEKNOFEST-YARISMALAR/ulasimda-yapay-zeka-yarismasi/blob/main/pozisyon%20kestirimi.gif) Uçan arabanın GPS sistemleri devre dışı kaldığında görsel verilerle pozisyon kestirimi yapılması.
-  ![UYZ_Diagram](https://github.com/TEKNOFEST-YARISMALAR/ulasimda-yapay-zeka-yarismasi/assets/47760055/a545ac68-8fd1-49b3-8d15-9e017493e114)
+  ![UYZ_Diagram](nesnetespiti.png)
   ![pozisyonkestirim](pozisyon%20kestirimi.gif)
 ## Yarışma Görevlerinin Değerlendirilmesi
 - Nesne Tespiti: MAP (IOU treshold = 0.5)
