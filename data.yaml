@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 12
+names: ['gemi', 'ikiteker', 'insan', 'ismakinesi', 'kamyon', 'otobus', 'otomobil', 'scooter', 'tekne', 'uai', 'uap', 'vagon']
+
+roboflow:
+  workspace: sahi-zeka
+  project: sahi-zeka
+  version: 6
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/sahi-zeka/sahi-zeka/dataset/6
