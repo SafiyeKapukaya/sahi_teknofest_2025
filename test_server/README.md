@@ -19,5 +19,4 @@ Venv'i aktif ettikten sonra komut istemi şu şekilde olmalı:
 pip install -r requirements.txt
 
 python app.py
-
 ```
