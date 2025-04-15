@@ -124,7 +124,7 @@ def validate_token(auth_header):
 
 @app.route('/')
 def index():
-    return "TEKNOFEST Test Sunucusu Gelişmiş Versiyon Çalışıyor!"
+    return "TEKNOFEST Test Sunucusu Çalışıyor!"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
