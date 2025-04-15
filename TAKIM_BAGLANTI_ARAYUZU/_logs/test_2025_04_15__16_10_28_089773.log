@@ -1,0 +1,10 @@
+2025-04-15 16:10:28,089 - INFO - Created Object Detection Model
+2025-04-15 16:10:28,185 - INFO - Login Successfully Completed : {'username': 'test', 'password': 'testsifre'}
+2025-04-15 16:10:28,185 - INFO - Frames loaded from ./_images/test_session\frames.json
+2025-04-15 16:10:28,186 - INFO - Frames file exists. Loading frames from file.
+2025-04-15 16:10:28,186 - INFO - Translations loaded from ./_images/test_session\translations.json
+2025-04-15 16:10:28,186 - INFO - Translations file exists. Loading translations from file.
+2025-04-15 16:10:28,247 - ERROR - Download failed for http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000001.jpg on attempt 1: 404 Client Error: NOT FOUND for url: http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000001.jpg
+2025-04-15 16:10:28,252 - INFO - Retrying in 0.1 seconds...
+2025-04-15 16:10:28,387 - ERROR - Download failed for http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000001.jpg on attempt 2: 404 Client Error: NOT FOUND for url: http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000001.jpg
+2025-04-15 16:10:28,387 - INFO - Retrying in 0.2 seconds...
