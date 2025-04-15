@@ -42,7 +42,7 @@ class ConnectionHandler:
                 logging.error("Login Failed : {}".format(response.text))
         except requests.exceptions.RequestException as e:
             logging.error(f"Login request failed: {e}")           
-
+    print("handler1")
 
     def write_to_env(self, session_name=None):
         found = False
