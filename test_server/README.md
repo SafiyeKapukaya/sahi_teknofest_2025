@@ -1,4 +1,4 @@
-#TEKNOFEST'IN VERI SUNUCUSU ORNEGİ
+# TEKNOFEST'İN SUNUCUSUNUN TEST İÇİN OLAN ÖRNEĞİ
 
 Sunucuyu kurmak için **UBUNTU 24.04** kullandığım için kurulumu ona göre anlatıcam.
 
