@@ -1,0 +1,13 @@
+2025-04-15 16:58:07,114 - INFO - Created Object Detection Model
+2025-04-15 16:58:07,204 - INFO - Login Successfully Completed : {'username': 'test', 'password': 'testsifre'}
+2025-04-15 16:58:07,205 - INFO - Frames loaded from ./_images/test_session\frames.json
+2025-04-15 16:58:07,205 - INFO - Frames file exists. Loading frames from file.
+2025-04-15 16:58:07,205 - INFO - Translations loaded from ./_images/test_session\translations.json
+2025-04-15 16:58:07,206 - INFO - Translations file exists. Loading translations from file.
+2025-04-15 16:58:11,309 - ERROR - Download failed (1/3): http://localhost:5000/static/frame_00001.jpg -> HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /static/frame_00001.jpg (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001710DCC0920>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2025-04-15 16:58:15,498 - ERROR - Download failed (2/3): http://localhost:5000/static/frame_00001.jpg -> HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /static/frame_00001.jpg (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001710DC99790>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2025-04-15 16:58:19,801 - ERROR - Download failed (3/3): http://localhost:5000/static/frame_00001.jpg -> HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /static/frame_00001.jpg (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001710DC9AB10>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2025-04-15 16:58:20,202 - ERROR - Failed to download image after 3 attempts: http://localhost:5000/static/frame_00001.jpg
+2025-04-15 16:58:20,202 - ERROR - Image not found: ./_images/test_session/frame_00001.jpg
+2025-04-15 16:58:20,248 - INFO - Prediction sent successfully. 
+	{"frame": "http://localhost:5000/frames/1/", "detected_objects": [], "detected_translations": []}

@@ -1,0 +1,15 @@
+2025-04-15 16:19:05,399 - INFO - Created Object Detection Model
+2025-04-15 16:19:05,562 - INFO - Login Successfully Completed : {'username': 'test', 'password': 'testsifre'}
+2025-04-15 16:19:05,563 - INFO - Frames loaded from ./_images/test_session\frames.json
+2025-04-15 16:19:05,563 - INFO - Frames file exists. Loading frames from file.
+2025-04-15 16:19:05,564 - INFO - Translations loaded from ./_images/test_session\translations.json
+2025-04-15 16:19:05,564 - INFO - Translations file exists. Loading translations from file.
+2025-04-15 16:19:09,693 - ERROR - Download failed for http://localhost:5000/static/frame_000001.jpg on attempt 1: HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /static/frame_000001.jpg (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002834DF689B0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2025-04-15 16:19:09,693 - INFO - Retrying in 0.1 seconds...
+2025-04-15 16:19:13,885 - ERROR - Download failed for http://localhost:5000/static/frame_000001.jpg on attempt 2: HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /static/frame_000001.jpg (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002834DF3BD10>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2025-04-15 16:19:13,885 - INFO - Retrying in 0.2 seconds...
+2025-04-15 16:19:18,170 - ERROR - Download failed for http://localhost:5000/static/frame_000001.jpg on attempt 3: HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /static/frame_000001.jpg (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002834DF3AC60>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+2025-04-15 16:19:18,171 - INFO - Retrying in 0.4 seconds...
+2025-04-15 16:19:18,571 - ERROR - Failed to download image from http://localhost:5000/static/frame_000001.jpg after 3 attempts.
+2025-04-15 16:19:18,620 - INFO - Prediction sent successfully. 
+	{"frame": "http://localhost:5000/frames/1/", "detected_objects": [{"cls": "http://10.147.40.102:5000/classes/3/", "landing_status": "1", "top_left_x": "12", "top_left_y": "12", "bottom_right_x": "12", "bottom_right_y": "12"}, {"cls": "http://10.147.40.102:5000/classes/3/", "landing_status": "1", "top_left_x": "24", "top_left_y": "24", "bottom_right_x": "24", "bottom_right_y": "24"}], "detected_translations": [{"translation_x": "0.01", "translation_y": "0.02"}]}

@@ -1,0 +1,15 @@
+2025-04-15 15:49:02,928 - INFO - Created Object Detection Model
+2025-04-15 15:49:03,041 - INFO - Login Successfully Completed : {'username': 'test', 'password': 'testsifre'}
+2025-04-15 15:49:03,041 - INFO - Frames loaded from ./_images/test_session\frames.json
+2025-04-15 15:49:03,041 - INFO - Frames file exists. Loading frames from file.
+2025-04-15 15:49:03,042 - INFO - Translations loaded from ./_images/test_session\translations.json
+2025-04-15 15:49:03,042 - INFO - Translations file exists. Loading translations from file.
+2025-04-15 15:49:03,105 - ERROR - Download failed for http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000000.jpg on attempt 1: 404 Client Error: NOT FOUND for url: http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000000.jpg
+2025-04-15 15:49:03,105 - INFO - Retrying in 0.1 seconds...
+2025-04-15 15:49:03,258 - ERROR - Download failed for http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000000.jpg on attempt 2: 404 Client Error: NOT FOUND for url: http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000000.jpg
+2025-04-15 15:49:03,258 - INFO - Retrying in 0.2 seconds...
+2025-04-15 15:49:03,519 - ERROR - Download failed for http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000000.jpg on attempt 3: 404 Client Error: NOT FOUND for url: http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000000.jpg
+2025-04-15 15:49:03,519 - INFO - Retrying in 0.4 seconds...
+2025-04-15 15:49:03,920 - ERROR - Failed to download image from http://10.147.40.102:5000/mediahttp://localhost:5000/static/frame_000000.jpg after 3 attempts.
+2025-04-15 15:49:04,014 - INFO - Prediction sent successfully. 
+	{"frame": "http://localhost:5000/frames/1/", "detected_objects": [{"cls": "http://10.147.40.102:5000/classes/3/", "landing_status": "1", "top_left_x": "12", "top_left_y": "12", "bottom_right_x": "12", "bottom_right_y": "12"}, {"cls": "http://10.147.40.102:5000/classes/3/", "landing_status": "1", "top_left_x": "24", "top_left_y": "24", "bottom_right_x": "24", "bottom_right_y": "24"}], "detected_translations": [{"translation_x": "0.01", "translation_y": "0.02"}]}

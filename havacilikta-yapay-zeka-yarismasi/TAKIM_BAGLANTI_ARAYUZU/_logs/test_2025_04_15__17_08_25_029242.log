@@ -1,0 +1,7 @@
+2025-04-15 17:08:25,030 - INFO - Created Object Detection Model
+2025-04-15 17:08:25,197 - INFO - Login Successfully Completed : {'username': 'test', 'password': 'testsifre'}
+2025-04-15 17:08:25,197 - INFO - Frames loaded from ./_images/test_session\frames.json
+2025-04-15 17:08:25,198 - INFO - Frames file exists. Loading frames from file.
+2025-04-15 17:08:25,198 - INFO - Translations loaded from ./_images/test_session\translations.json
+2025-04-15 17:08:25,198 - INFO - Translations file exists. Loading translations from file.
+2025-04-15 17:08:25,202 - INFO - frame_00001.jpg already exists, skipping download.
