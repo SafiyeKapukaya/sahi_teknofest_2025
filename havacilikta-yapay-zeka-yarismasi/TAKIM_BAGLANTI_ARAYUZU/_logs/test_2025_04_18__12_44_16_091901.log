@@ -1,0 +1,10 @@
+2025-04-18 12:44:16,092 - INFO - Created Object Detection Model
+2025-04-18 12:44:16,148 - INFO - Login Successfully Completed : {'username': 'test', 'password': 'testsifre'}
+2025-04-18 12:44:16,148 - WARNING - ./_images/test_session\frames.json does not exist.
+2025-04-18 12:44:16,162 - INFO - Successful : get_frames : [{'health_status': 1, 'image_url': 'http://10.151.42.230:5000/static/frame_00001.jpg', 'session': 'http://10.151.42.230:5000/session/1/', 'translation_x': 0.01, 'translation_y': 0.02, 'translation_z': 0.03, 'url': 'http://10.151.42.230:5000/frames/1/', 'video_name': 'test_session'}]
+2025-04-18 12:44:16,163 - INFO - test_session json exists, returning..
+2025-04-18 12:44:16,163 - INFO - Frames saved to ./_images/test_session/frames.json
+2025-04-18 12:44:16,164 - WARNING - ./_images/test_session\translations.json does not exist.
+2025-04-18 12:44:16,191 - INFO - Successful : get_translations : [{'health_status': 1, 'translation_x': 0.01, 'translation_y': 0.02, 'translation_z': 0.03}]
+2025-04-18 12:44:16,192 - INFO - Translations saved to ./_images/test_session/translations.json
+2025-04-18 12:44:16,217 - INFO - http://10.151.42.230:5000/static/frame_00001.jpg - Download finished in 0.02 sec -> ./_images/test_session/frame_00001.jpg

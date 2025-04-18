@@ -12,8 +12,9 @@ class ObjectDetectionModel:
     def __init__(self, evaluation_server_url):
         logging.info('Created Object Detection Model')
         self.evaulation_server = evaluation_server_url
-        self.model = YOLO("C:/Users/safiy/havacilikta-yapay-zeka-yarismasi/models/best.pt")
-    print("objectdet1")
+        self.model = YOLO("C:/Users/atala/source/github/sahi_teknofest_2025/havacilikta-yapay-zeka-yarismasi/models/best.pt")
+        print("objectdet1")
+
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
         t1 = time.perf_counter()
@@ -31,7 +32,6 @@ class ObjectDetectionModel:
                     with open(img_path, 'wb') as img_file:
                         img_file.write(img_bytes)
 
-                    # Dosya başarıyla indirildi mi kontrol et
                     if os.path.getsize(img_path) < 1000:
                         logging.warning(f"Downloaded image may be incomplete: {img_path}")
                     else:
@@ -44,7 +44,6 @@ class ObjectDetectionModel:
             logging.error(f"Failed to download image after {retries} attempts: {img_url}")
         else:
             logging.info(f'{image_name} already exists, skipping download.')
-    print("obj2")
 
     def process(self, prediction, evaluation_server_url, health_status, images_folder, images_files):
         image_url = prediction.image_url
@@ -53,20 +52,18 @@ class ObjectDetectionModel:
 
         self.download_image(full_image_url, images_folder, images_files)
 
-        # Tam yerel yol
+        # ✅ Eksik olan satır eklendi
         image_path = os.path.join(images_folder, image_name)
 
-        # Dosya okunabilir mi kontrolü
         if not os.path.exists(image_path):
             logging.error(f"Image not found: {image_path}")
-            return prediction  # Görsel yoksa işlem yapma
+            return prediction
 
         img = cv2.imread(image_path)
         if img is None:
             logging.error(f"Image read error (OpenCV failed): {image_path}")
-            return prediction  # Görsel okunamadıysa işlem yapma
+            return prediction
 
-        # Tahmin işlemini yap
         frame_results = self.detect(prediction, health_status, image_path)
         return frame_results
 
@@ -90,14 +87,15 @@ class ObjectDetectionModel:
                 d_obj = DetectedObject(cls, landing_status, top_left_x, top_left_y, bottom_right_x, bottom_right_y)
                 prediction.add_detected_object(d_obj)
 
+        # ✅ Her durumda bir değer atanmalı
+        pred_translation_x = 0
+        pred_translation_y = 0
+
         if health_status == '0':
             if prediction.detected_objects:
                 obj = prediction.detected_objects[0]
                 pred_translation_x = (obj.top_left_x + obj.bottom_right_x) // 2
                 pred_translation_y = (obj.top_left_y + obj.bottom_right_y) // 2
-            else:
-                pred_translation_x = 0
-                pred_translation_y = 0
 
         trans_obj = DetectedTranslation(pred_translation_x, pred_translation_y)
         prediction.add_translation_object(trans_obj)

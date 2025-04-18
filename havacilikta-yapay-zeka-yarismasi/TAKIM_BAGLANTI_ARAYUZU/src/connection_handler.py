@@ -48,7 +48,7 @@ class ConnectionHandler:
         found = False
         change = False
         # iterates over the lines, enters the condition on session_name line
-        with open("./config/.env", "r+") as f:
+        with open("C:/Users/atala/source/github/sahi_teknofest_2025/havacilikta-yapay-zeka-yarismasi/TAKIM_BAGLANTI_ARAYUZU/config/.env", "r+") as f:
             lines = f.readlines()
             for i, line in enumerate(lines):
                 # line check
