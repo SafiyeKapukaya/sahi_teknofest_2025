@@ -6,11 +6,13 @@ from ultralytics import YOLO
 from .constants import classes, landing_statuses
 from .detected_object import DetectedObject
 from .detected_translation import DetectedTranslation
+
 import cv2
 import os
 from .get_ratioo import get_blue_white_ratio
 from .constants import landing_statuses
 from .landingg import check_landing_conditions
+
 
 class ObjectDetectionModel:
     # Base class for team models
@@ -19,7 +21,7 @@ class ObjectDetectionModel:
         logging.info('Created Object Detection Model')
         self.evaulation_server = evaluation_server_url
         # Modelinizi bu kısımda init edebilirsiniz.
-        self.model = YOLO(r"C:\Users\safiy\havacilikta-yapay-zeka-yarismasi\models\mehmet.pt") # Örnektir!
+        self.model = YOLO(r"C:\Users\atala\source\github\sahimiss\models\mehmet.pt")  # Örnektir!
 
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
@@ -53,79 +55,76 @@ class ObjectDetectionModel:
         else:
             logging.info(f'{image_name} already exists in {images_folder}, skipping download.')
 
-    def process(self, prediction, evaluation_server_url, health_status, images_folder, images_files,frame):
-        # Yarışmacılar resim indirme, pre ve post process vb işlemlerini burada gerçekleştirebilir.
-        # Download image (Ornek)
-        self.download_image(evaluation_server_url + "media" + prediction.image_url, images_folder, images_files)
-        # Örnek: Burada OpenCV gibi bir tool ile preprocessing işlemi yapılabilir. (Tercihe Bağlı)
-        frame=frame
-        # Nesne tespiti ve pozisyon kestirim modelinin bulunduğu fonksiyonun (self.detect() ) çağırılması burada olmalıdır.
-        frame_results = self.detect(prediction, health_status,frame)
-        # Tahminler objesi FramePrediction sınıfında return olarak dönülmelidir.
+    def process(self, prediction, evaluation_server_url, health_status, images_folder, images_files, frame):
+        # Doğru URL'yi oluştur
+        if prediction.image_url.startswith("http"):
+            image_url = prediction.image_url
+        else:
+            image_url = evaluation_server_url.rstrip("/") + "/media/" + prediction.image_url.lstrip("/")
+
+        # Görüntüyü indir
+        self.download_image(image_url, images_folder, images_files)
+
+        # Nesne tespiti işlemi
+        frame_results = self.detect(prediction, health_status, frame)
+
         return frame_results
 
-    def detect(self, prediction, health_status,frame):
-        # Modelinizle bu fonksiyon içerisinde tahmin yapınız.
-        results = self.model.predict()
-        frame=frame
-        # Burada örnek olması amacıyla 2 adet tahmin yapıldığı simüle edilmiştir.
-        # Yarışma esnasında modelin tahmin olarak ürettiği sonuçlar kullanılmalıdır.
+    def detect(self, prediction, health_status, frame):
+        results = self.model.predict(source=frame['image_url'], save=False, verbose=False)
 
-        # for i in results: # gibi
-        for i in results:
+        if len(results) == 0 or results[0].boxes is None or len(results[0].boxes) == 0:
+            return prediction  # hiç tespit yoksa
+
+        boxes = results[0].boxes.xyxy.cpu().numpy()  # numpy format
+        classes = results[0].boxes.cls.cpu().numpy()
+        detections = []
+        for idx in range(len(boxes)):
+            cls_id = int(classes[idx])
+            class_name = self.model.names[cls_id]
+            objects=[class_name,boxes[idx]]
+            detections.append(objects)
+
+        for idx in range(len(boxes)):
             uap_or_uai_exists = False
-            if i[0] in  ['gemi', 'ikiteker', 'ismakinesi', 'kamyon', 'otobus', 'otomobil', 'scooter', 'tekne', 'vagon']:
-                i[0]=0
-            elif i[0] == "insan":
-                i[0]=1
-            elif i[0]=="uai":
-                i[0]=3
+            if class_name in ['gemi', 'ikiteker', 'ismakinesi', 'kamyon', 'otobus', 'otomobil', 'scooter', 'tekne',
+                              'vagon']:
+                cls = 0
+            elif class_name == "insan":
+                cls = 1
+            elif class_name == "uai":
+                cls = 3
                 uap_or_uai_exists = True
             else:
-                i[0]=2
+                cls = 2
                 uap_or_uai_exists = True
 
-            cls=i[0]
-            if cls not in [2,3]:
+            if cls not in [2, 3]:
                 landing_status = "-1"
             else:
-                landing_status = check_landing_conditions(i,frame)
+                landing_status = check_landing_conditions(detections, frame)
 
-               # Tahmin edilen nesnenin sınıfı classes sözlüğü kullanılarak atanmalıdır.
-         # Tahmin edilen nesnenin inilebilir durumu landing_statuses sözlüğü kullanılarak atanmalıdır.
-            top_left_x = i[2][0]  # Örnek olması için rastgele değer atanmıştır. Modelin sonuçları kullanılmalıdır.
-            top_left_y = i[2][1]  # Örnek olması için rastgele değer atanmıştır. Modelin sonuçları kullanılmalıdır.
-            bottom_right_x = i[2][2]  # Örnek olması için rastgele değer atanmıştır. Modelin sonuçları kullanılmalıdır.
-            bottom_right_y = i[2][3]  # Örnek olması için rastgele değer atanmıştır. Modelin sonuçları kullanılmalıdır.
+            top_left_x = boxes[idx][0]
+            top_left_y = boxes[idx][1]
+            bottom_right_x = boxes[idx][2]
+            bottom_right_y = boxes[idx][3]
 
-            # Modelin tespit ettiği herbir nesne için bir DetectedObject sınıfına ait nesne oluşturularak
-            # tahmin modelinin sonuçları parametre olarak verilmelidir.
             d_obj = DetectedObject(cls,
                                    landing_status,
                                    top_left_x,
                                    top_left_y,
                                    bottom_right_x,
-                                   bottom_right_y
-                                   )
-
-            # Modelin tahmin ettiği her nesne prediction nesnesi içerisinde bulunan detected_objects listesine eklenmelidir.
+                                   bottom_right_y)
             prediction.add_detected_object(d_obj)
 
-        # Health Status biti hava aracinin uydu haberlesmesinin saglikli olup olmadigini gosterir.
-        # Health Status 0 ise sistem calismali 1 ise gelen verinin aynisini gondermelidir.
-
+        # Health Status işlemi
         if health_status == '0':
-            # Takimlar buraya kendi gelistirdikleri algoritmalarin sonuclarini entegre edebilirler.
-            pred_translation_x = random.randint(1,
-                                                10)  # Ornek olmasi icin rastgele degerler atanmistir takimlar kendi sonuclarini kullanmalidirlar.
-            pred_translation_y = random.randint(1,
-                                                10)  # Ornek olmasi icin rastgele degerler atanmistir takimlar kendi sonuclarini kullanmalidirlar.
+            pred_translation_x = random.randint(1, 10)
+            pred_translation_y = random.randint(1, 10)
         else:
             pred_translation_x = prediction.gt_translation_x
             pred_translation_y = prediction.gt_translation_y
 
-
-        # Translation icin hesaplanilan degerleri sunucuya gondermek icin ilgili objeye dolduralim.
         trans_obj = DetectedTranslation(pred_translation_x, pred_translation_y)
         prediction.add_translation_object(trans_obj)
 

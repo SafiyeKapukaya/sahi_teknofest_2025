@@ -12,17 +12,17 @@ def boxes_overlap(box1, box2):
 
 # iniş uygunluk kontrolü
 def check_landing_conditions(detections, frame):
-    landing_zones = [det for det in detections if det[0] in [2, 3]]
-    other_objects = [det for det in detections if det[0] not in [2, 3]]
+    landing_zones = [det for det in detections if det[0] in ["uap","uai"]]
+    other_objects = [det for det in detections if det[0] not in ["uap","uai"]]
 
     status = []
     for zone in landing_zones:
-        zone_bbox = zone[2]
-        overlap = any(boxes_overlap(zone_bbox, obj[2]) for obj in other_objects)
+        zone_bbox = zone[1]
+        overlap = any(boxes_overlap(zone_bbox, obj[1]) for obj in other_objects)
 
         x1, y1, x2, y2 = zone_bbox
         cropped = frame[y1:y2, x1:x2]
-        if zone[0] == 2:
+        if zone[0] == "uap":
             ratio_blue = get_blue_white_ratio(cropped)
             if not overlap and 0.13 <= ratio_blue <= 0.27:
                 status.append((zone_bbox, "1"))
