@@ -21,7 +21,7 @@ class ObjectDetectionModel:
         logging.info('Created Object Detection Model')
         self.evaulation_server = evaluation_server_url
         # Modelinizi bu kısımda init edebilirsiniz.
-        self.model = YOLO(r"C:\Users\atala\source\github\sahimiss\models\mehmet.pt")  # Örnektir!
+        self.model = YOLO(r"C:\Users\safiy\havacilikta-yapay-zeka-yarismasi\models\mehmet.pt")  # Örnektir!
 
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
@@ -64,7 +64,7 @@ class ObjectDetectionModel:
 
         # Görüntüyü indir
         self.download_image(image_url, images_folder, images_files)
-
+        frame=frame
         # Nesne tespiti işlemi
         frame_results = self.detect(prediction, health_status, frame)
 
@@ -72,7 +72,7 @@ class ObjectDetectionModel:
 
     def detect(self, prediction, health_status, frame):
         results = self.model.predict(source=frame['image_url'], save=False, verbose=False)
-
+        frame=frame
         if len(results) == 0 or results[0].boxes is None or len(results[0].boxes) == 0:
             return prediction  # hiç tespit yoksa
 
@@ -83,10 +83,16 @@ class ObjectDetectionModel:
             cls_id = int(classes[idx])
             class_name = self.model.names[cls_id]
             objects=[class_name,boxes[idx]]
+            print(objects)
             detections.append(objects)
 
+        print(detections)
         for idx in range(len(boxes)):
+            class_id = classes[idx]
+            class_name = self.model.names[class_id]  # class_name artık her nesne için alınır
+
             uap_or_uai_exists = False
+
             if class_name in ['gemi', 'ikiteker', 'ismakinesi', 'kamyon', 'otobus', 'otomobil', 'scooter', 'tekne',
                               'vagon']:
                 cls = 0
@@ -102,12 +108,16 @@ class ObjectDetectionModel:
             if cls not in [2, 3]:
                 landing_status = "-1"
             else:
-                landing_status = check_landing_conditions(detections, frame)
+                # detection'lar frame için bir kerede hesaplanmalı, her kutu için değil
+                # o yüzden bu fonksiyon döngü dışında 1 kez çağrılmalı, istersen yukarı alabilirim
+                landing_status = check_landing_conditions(detections, frame["image_url"])
 
             top_left_x = boxes[idx][0]
-            top_left_y = boxes[idx][1]
+            top_left_y =boxes[idx][1]
             bottom_right_x = boxes[idx][2]
             bottom_right_y = boxes[idx][3]
+
+            print("cls:", cls)
 
             d_obj = DetectedObject(cls,
                                    landing_status,

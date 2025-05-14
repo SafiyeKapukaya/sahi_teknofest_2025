@@ -50,6 +50,7 @@ def run():
                                        translation['translation_x'], translation['translation_y'])
         # Healt status kontrolu ikinci gorevde sistemin ne zaman devreye girmesi gerektigini gosterir
         health_status = translation['health_status']
+        print(frame)
         # Tespit modelini calistir
         predictions = detection_model.process(predictions,evaluation_server_url, health_status, images_folder, images_files,frame)
         # Modelin o frame'e ait tahmin degerlerini sunucuya gonder
