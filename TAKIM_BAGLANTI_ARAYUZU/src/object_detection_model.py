@@ -86,7 +86,6 @@ class ObjectDetectionModel:
             print(objects)
             detections.append(objects)
 
-        print(detections)
         for idx in range(len(boxes)):
             class_id = classes[idx]
             class_name = self.model.names[class_id]  # class_name artık her nesne için alınır
