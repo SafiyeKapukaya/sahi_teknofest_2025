@@ -44,8 +44,8 @@ def get_red_white_ratio(image):
     total = red_pixels + white_pixels
 
     if total == 0:
-        return 0.0, 0.0
+        return 0.0
 
     red_ratio = red_pixels / total
     white_ratio = white_pixels / total
-    return red_ratio, white_ratio
+    return white_pixels/red_pixels

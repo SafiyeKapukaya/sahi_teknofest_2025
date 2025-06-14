@@ -1,7 +1,10 @@
 import cv2
 import numpy as np
 import urllib.request
+# get_ratioo.py dosyasındaki fonksiyonları doğru şekilde import ettiğinizi varsayıyorum.
+# Önceki hatalarınıza göre bu importun doğru çalıştığını anlıyorum.
 from .get_ratioo import get_blue_white_ratio, get_red_white_ratio
+
 
 # URL'den OpenCV görüntüsü yükleme
 def url_to_image(url):
@@ -14,6 +17,7 @@ def url_to_image(url):
         print("Görüntü indirilemedi:", e)
         return None
 
+
 # Kutu çakışıyor mu kontrolü
 def boxes_overlap(box1, box2):
     x1_max = max(box1[0], box2[0])
@@ -22,12 +26,14 @@ def boxes_overlap(box1, box2):
     y2_min = min(box1[3], box2[3])
     return x2_min > x1_max and y2_min > y1_max
 
+
 # İniş uygunluk kontrolü
 def check_landing_conditions(detections, frame_url):
     frame = url_to_image(frame_url)
     if frame is None:
         print("Görüntü yüklenemedi.")
-        return []
+        # Görüntü yüklenemezse uygun olmayan bir durum döndür
+        return "0"
 
     landing_zones = [det for det in detections if det[0] in ["uap", "uai"]]
     other_objects = [det for det in detections if det[0] not in ["uap", "uai"]]
@@ -46,15 +52,27 @@ def check_landing_conditions(detections, frame_url):
             continue
 
         if zone[0] == "uap":
+            # Bir önceki hatanızdan dolayı bu fonksiyonun tek bir float döndürdüğünü varsayıyoruz.
+            # Eğer hala tuple dönüyorsa 'ratio_blue, _' şeklinde düzeltmelisiniz.
             ratio_blue = get_blue_white_ratio(cropped)
             if not overlap and 0.13 <= ratio_blue <= 0.27:
                 status.append((zone_bbox, "1"))
             else:
                 status.append((zone_bbox, "0"))
         else:  # uai
+            # Bir önceki hatanızdan dolayı bu fonksiyonun tek bir float döndürdüğünü varsayıyoruz.
+            # Eğer hala tuple dönüyorsa 'ratio_red, _' şeklinde düzeltmelisiniz.
             ratio_red = get_red_white_ratio(cropped)
             if not overlap and 0.06 <= ratio_red <= 0.16:
                 status.append((zone_bbox, "1"))
             else:
                 status.append((zone_bbox, "0"))
+
+    # --- YENİ EKLENEN KONTROL BLOGU ---
+    # Eğer 'status' listesi boşsa (hiç 'uap' veya 'uai' bulunamadıysa),
+    # bu, iniş için uygun bir alan olmadığını gösterir. '0' döndür.
+    if not status:
+        return "0"
+
+    # Eğer liste boş değilse, bulunan ilk uygun alanın durumunu döndür.
     return status[0][1]
