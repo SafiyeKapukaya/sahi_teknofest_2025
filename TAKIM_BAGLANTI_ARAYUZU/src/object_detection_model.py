@@ -21,7 +21,7 @@ class ObjectDetectionModel:
         logging.info('Created Object Detection Model')
         self.evaulation_server = evaluation_server_url
         # Modelinizi bu kısımda init edebilirsiniz.
-        self.model = YOLO(r"C:\Users\safiy\havacilikta-yapay-zeka-yarismasi\models\mehmet.pt")  # Örnektir!
+        self.model = YOLO(r"..\models\mehmet.pt")  # Örnektir!
 
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
@@ -66,12 +66,16 @@ class ObjectDetectionModel:
         self.download_image(image_url, images_folder, images_files)
         frame=frame
         # Nesne tespiti işlemi
-        frame_results = self.detect(prediction, health_status, frame)
+
+
+        target_file=os.path.abspath("_images\\auto_session\\"+image_url.split('/')[-1])
+
+        frame_results = self.detect(prediction, health_status, frame,target_file)
 
         return frame_results
 
-    def detect(self, prediction, health_status, frame):
-        results = self.model.predict(source=frame['image_url'], save=False, verbose=False)
+    def detect(self, prediction, health_status, frame,temp_file_path):
+        results = self.model.predict(source=temp_file_path, save=False, verbose=False)
         frame=frame
         if len(results) == 0 or results[0].boxes is None or len(results[0].boxes) == 0:
             return prediction  # hiç tespit yoksa
