@@ -3,6 +3,7 @@ import time
 import random
 import requests
 from ultralytics import YOLO
+from .connection_handler import ConnectionHandler
 from .constants import classes, landing_statuses
 from .detected_object import DetectedObject
 from .detected_translation import DetectedTranslation
@@ -18,10 +19,12 @@ class ObjectDetectionModel:
     # Base class for team models
 
     def __init__(self, evaluation_server_url):
+        self.connectionHandler = ConnectionHandler(evaluation_server_url)
         logging.info('Created Object Detection Model')
         self.evaulation_server = evaluation_server_url
         # Modelinizi bu kısımda init edebilirsiniz.
-        self.model = YOLO(r"..\models\mehmet.pt")  # Örnektir!
+        self.model = YOLO(r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\mehmet.pt")
+        # Örnektir!
 
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
@@ -66,16 +69,14 @@ class ObjectDetectionModel:
         self.download_image(image_url, images_folder, images_files)
         frame=frame
         # Nesne tespiti işlemi
-
-
-        target_file=os.path.abspath("_images\\auto_session\\"+image_url.split('/')[-1])
-
-        frame_results = self.detect(prediction, health_status, frame,target_file)
-
+        frame_results = self.detect(prediction, health_status, frame)
         return frame_results
 
-    def detect(self, prediction, health_status, frame,temp_file_path):
-        results = self.model.predict(source=temp_file_path, save=False, verbose=False)
+    def detect(self, prediction, health_status, frame):
+        session_name = self.connectionHandler.get_session_name()
+        image_filename = prediction.image_url.split('/')[-1]
+        image_path = os.path.join('_images', session_name, image_filename)
+        results = self.model.predict(source=image_path, save=False, verbose=False)
         frame=frame
         if len(results) == 0 or results[0].boxes is None or len(results[0].boxes) == 0:
             return prediction  # hiç tespit yoksa
@@ -89,7 +90,6 @@ class ObjectDetectionModel:
             objects=[class_name,boxes[idx]]
             print(objects)
             detections.append(objects)
-
         for idx in range(len(boxes)):
             class_id = classes[idx]
             class_name = self.model.names[class_id]  # class_name artık her nesne için alınır
