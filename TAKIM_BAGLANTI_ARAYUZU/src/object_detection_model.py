@@ -2,17 +2,15 @@ import logging
 import time
 import random
 import requests
+
 from ultralytics import YOLO
-from .connection_handler import ConnectionHandler
 from .constants import classes, landing_statuses
 from .detected_object import DetectedObject
 from .detected_translation import DetectedTranslation
-
-import cv2
-import os
-from .get_ratioo import get_blue_white_ratio
-from .constants import landing_statuses
 from .landingg import check_landing_conditions
+import os
+
+from .connection_handler import ConnectionHandler
 
 
 class ObjectDetectionModel:
@@ -23,8 +21,8 @@ class ObjectDetectionModel:
         logging.info('Created Object Detection Model')
         self.evaulation_server = evaluation_server_url
         # Modelinizi bu kısımda init edebilirsiniz.
+        # self.model = get_keras_model() # Örnektir!
         self.model = YOLO(r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\mehmet.pt")
-        # Örnektir!
 
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
@@ -35,31 +33,32 @@ class ObjectDetectionModel:
         # Eger indirecegimiz frame'i daha once indirmediysek indirme islemine gecelim
         if image_name not in images_files:
             for attempt in range(retries):
-                try:
-                    response = requests.get(img_url, timeout=60)
-                    response.raise_for_status()
+                    try:
+                        response = requests.get(img_url, timeout=60)
+                        response.raise_for_status()
+                        
+                        img_bytes = response.content
+                        with open(images_folder + image_name, 'wb') as img_file:
+                            img_file.write(img_bytes)
 
-                    img_bytes = response.content
-                    with open(images_folder + image_name, 'wb') as img_file:
-                        img_file.write(img_bytes)
+                        t2 = time.perf_counter()
+                        logging.info(f'{img_url} - Download Finished in {t2 - t1} seconds to {images_folder + image_name}')
+                        return
 
-                    t2 = time.perf_counter()
-                    logging.info(f'{img_url} - Download Finished in {t2 - t1} seconds to {images_folder + image_name}')
-                    return
-
-                except requests.exceptions.RequestException as e:
-                    logging.error(f"Download failed for {img_url} on attempt {attempt + 1}: {e}")
-                    logging.info(f"Retrying in {wait_time} seconds...")
-                    time.sleep(wait_time)
-                    wait_time *= 2
+                    except requests.exceptions.RequestException as e:
+                        logging.error(f"Download failed for {img_url} on attempt {attempt + 1}: {e}")
+                        logging.info(f"Retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+                        wait_time *= 2
 
             logging.error(f"Failed to download image from {img_url} after {retries} attempts.")
         # Eger indirecegimiz frame'i daha once indirdiysek indirme yapmadan devam edebiliriz
         else:
             logging.info(f'{image_name} already exists in {images_folder}, skipping download.')
 
-    def process(self, prediction, evaluation_server_url, health_status, images_folder, images_files, frame):
-        # Doğru URL'yi oluştur
+    def process(self, prediction,evaluation_server_url,health_status, images_folder ,images_files, frame):
+        # Yarışmacılar resim indirme, pre ve post process vb işlemlerini burada gerçekleştirebilir.
+        # Download image (Ornek)
         if prediction.image_url.startswith("http"):
             image_url = prediction.image_url
         else:
@@ -68,8 +67,11 @@ class ObjectDetectionModel:
         # Görüntüyü indir
         self.download_image(image_url, images_folder, images_files)
         frame=frame
-        # Nesne tespiti işlemi
-        frame_results = self.detect(prediction, health_status, frame)
+        # Örnek: Burada OpenCV gibi bir tool ile preprocessing işlemi yapılabilir. (Tercihe Bağlı)
+        # ...
+        # Nesne tespiti ve pozisyon kestirim modelinin bulunduğu fonksiyonun (self.detect() ) çağırılması burada olmalıdır.
+        frame_results = self.detect(prediction,health_status,frame)
+        # Tahminler objesi FramePrediction sınıfında return olarak dönülmelidir.
         return frame_results
 
     def detect(self, prediction, health_status, frame):
@@ -77,7 +79,7 @@ class ObjectDetectionModel:
         image_filename = prediction.image_url.split('/')[-1]
         image_path = os.path.join('_images', session_name, image_filename)
         results = self.model.predict(source=image_path, save=False, verbose=False)
-        frame=frame
+        frame = frame
         if len(results) == 0 or results[0].boxes is None or len(results[0].boxes) == 0:
             return prediction  # hiç tespit yoksa
 
@@ -87,8 +89,7 @@ class ObjectDetectionModel:
         for idx in range(len(boxes)):
             cls_id = int(classes[idx])
             class_name = self.model.names[cls_id]
-            objects=[class_name,boxes[idx]]
-            print(objects)
+            objects = [class_name, boxes[idx]]
             detections.append(objects)
         for idx in range(len(boxes)):
             class_id = classes[idx]
@@ -116,11 +117,10 @@ class ObjectDetectionModel:
                 landing_status = check_landing_conditions(detections, frame["image_url"])
 
             top_left_x = boxes[idx][0]
-            top_left_y =boxes[idx][1]
+            top_left_y = boxes[idx][1]
             bottom_right_x = boxes[idx][2]
             bottom_right_y = boxes[idx][3]
 
-            print("cls:", cls)
 
             d_obj = DetectedObject(cls,
                                    landing_status,
@@ -130,15 +130,18 @@ class ObjectDetectionModel:
                                    bottom_right_y)
             prediction.add_detected_object(d_obj)
 
-        # Health Status işlemi
         if health_status == '0':
-            pred_translation_x = random.randint(1, 10)
-            pred_translation_y = random.randint(1, 10)
-        else:
-            pred_translation_x = prediction.gt_translation_x
+            # Takimlar buraya kendi gelistirdikleri algoritmalarin sonuclarini entegre edebilirler.
+            pred_translation_x = random.randint(1, 10) # Ornek olmasi icin rastgele degerler atanmistir takimlar kendi sonuclarini kullanmalidirlar.
+            pred_translation_y = random.randint(1, 10) # Ornek olmasi icin rastgele degerler atanmistir takimlar kendi sonuclarini kullanmalidirlar.
+            pred_translation_z = random.randint(1, 10) # Ornek olmasi icin rastgele degerler atanmistir takimlar kendi sonuclarini kullanmalidirlar.
+        else :
+            pred_translation_x = prediction.gt_translation_x # String
             pred_translation_y = prediction.gt_translation_y
+            pred_translation_z = prediction.gt_translation_z
 
-        trans_obj = DetectedTranslation(pred_translation_x, pred_translation_y)
+        # Translation icin hesaplanilan degerleri sunucuya gondermek icin ilgili objeye dolduralim.
+        trans_obj = DetectedTranslation(pred_translation_x, pred_translation_y, pred_translation_z)
         prediction.add_translation_object(trans_obj)
 
         return prediction
