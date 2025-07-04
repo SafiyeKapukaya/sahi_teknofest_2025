@@ -18,8 +18,7 @@ def configure_logger(team_name):
 
 def run():
     print("Started...")
-    # .env dosyasından konfigurasyon i
-    #icin gereken bilgileri cek
+    # .env dosyasından konfigurasyon icin gereken bilgileri cek
     config.search_path = "./config/"
     team_name = config('TEAM_NAME')
     password = config('PASSWORD')
@@ -35,9 +34,11 @@ def run():
     server = ConnectionHandler(evaluation_server_url, username=team_name, password=password)
 
     # Mevcutta aktif olan oturumdan tum frameleri cek.
-    frames_json = server.get_frames()
+    frames_json = server.get_frames(force_download=True)
+
     # Mevcutta aktif olan oturumdan tum translation verilerini cek.
-    translations_json = server.get_translations()
+    translations_json = server.get_translations(force_download=True)  
+
     # Klasorun ve dosyanin yollarini cekelim
     images_files, images_folder = server.get_listdir()
 
@@ -45,15 +46,13 @@ def run():
     for frame, translation in tqdm(zip(frames_json, translations_json), total=len(frames_json)):
         # Prediction objesini frame ve translation bilgilerini tutacak sekilde olustur
         predictions = FramePredictions(frame['url'], frame['image_url'], frame['video_name'],
-                                      translation['translation_x'], translation['translation_y'])
-
+                                       translation['translation_x'], translation['translation_y'], translation['translation_z'])
         # Healt status kontrolu ikinci gorevde sistemin ne zaman devreye girmesi gerektigini gosterir
         health_status = translation['health_status']
         # Tespit modelini calistir
-        predictions = detection_model.process(predictions,evaluation_server_url, health_status, images_folder, images_files,frame)
+        predictions = detection_model.process(predictions, evaluation_server_url, health_status, images_folder, images_files, frame)
         # Modelin o frame'e ait tahmin degerlerini sunucuya gonder
         result = server.send_prediction(predictions)
-        print(result)
 
 
 if __name__ == '__main__':
