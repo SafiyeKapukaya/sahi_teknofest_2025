@@ -2,8 +2,10 @@ import logging
 import time
 import random
 import requests
+import torch
 
 from ultralytics import YOLO
+
 from .constants import classes, landing_statuses
 from .detected_object import DetectedObject
 from .detected_translation import DetectedTranslation
@@ -22,7 +24,9 @@ class ObjectDetectionModel:
         self.evaulation_server = evaluation_server_url
         # Modelinizi bu kısımda init edebilirsiniz.
         # self.model = get_keras_model() # Örnektir!
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = YOLO(r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\mehmet.pt")
+        self.model.to(self.device)
 
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
@@ -78,7 +82,7 @@ class ObjectDetectionModel:
         session_name = self.connectionHandler.get_session_name()
         image_filename = prediction.image_url.split('/')[-1]
         image_path = os.path.join('_images', session_name, image_filename)
-        results = self.model.predict(source=image_path, save=False, verbose=False)
+        results = self.model.predict(source=image_path, save=False, verbose=False, device=self.device)
         frame = frame
         if len(results) == 0 or results[0].boxes is None or len(results[0].boxes) == 0:
             return prediction  # hiç tespit yoksa
