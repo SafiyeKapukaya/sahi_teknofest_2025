@@ -1,12 +1,15 @@
 import logging
 import time
-import random
 import requests
 import torch
+import cv2
+import numpy as np
 
 from ultralytics import YOLO
 
 from .constants import classes, landing_statuses
+
+from .visual_odometry import DroneTrajectoryEstimator
 from .detected_object import DetectedObject
 from .detected_translation import DetectedTranslation
 from .landingg import check_landing_conditions
@@ -19,6 +22,7 @@ class ObjectDetectionModel:
     # Base class for team models
 
     def __init__(self, evaluation_server_url):
+        self.trajectory_estimator = DroneTrajectoryEstimator()
         self.connectionHandler = ConnectionHandler(evaluation_server_url)
         logging.info('Created Object Detection Model')
         self.evaulation_server = evaluation_server_url
@@ -134,13 +138,28 @@ class ObjectDetectionModel:
                                    bottom_right_y)
             prediction.add_detected_object(d_obj)
 
-        if health_status == '0':
-            # Takimlar buraya kendi gelistirdikleri algoritmalarin sonuclarini entegre edebilirler.
-            pred_translation_x = random.randint(1, 10) # Ornek olmasi icin rastgele degerler atanmistir takimlar kendi sonuclarini kullanmalidirlar.
-            pred_translation_y = random.randint(1, 10) # Ornek olmasi icin rastgele degerler atanmistir takimlar kendi sonuclarini kullanmalidirlar.
-            pred_translation_z = random.randint(1, 10) # Ornek olmasi icin rastgele degerler atanmistir takimlar kendi sonuclarini kullanmalidirlar.
-        else :
-            pred_translation_x = prediction.gt_translation_x # String
+            pred_translation_x = 0.0
+            pred_translation_y = 0.0
+            pred_translation_z = 0.0
+
+        if str(health_status) == '0':
+            frame_bgr = cv2.imread(image_path)
+            print(f"Image path: {image_path}, image loaded: {frame_bgr is not None}")
+            if frame_bgr is not None:
+                estimated_position = self.trajectory_estimator.process_frame(frame_bgr, 0, None)
+                print(f"Estimated position from process_frame: {estimated_position}")
+                if estimated_position is not None and not np.any(np.isnan(estimated_position)):
+                    pred_translation_x = float(estimated_position[0])
+                    pred_translation_y = float(estimated_position[1])
+                    pred_translation_z = float(estimated_position[2])
+                else:
+                    print("[UYARI] Estimated position is None or contains NaN, setting zeros.")
+                    pred_translation_x = pred_translation_y = pred_translation_z = 0.0
+            else:
+                print("[HATA] Image could not be loaded, setting zeros.")
+                pred_translation_x = pred_translation_y = pred_translation_z = 0.0
+        else:
+            pred_translation_x = prediction.gt_translation_x
             pred_translation_y = prediction.gt_translation_y
             pred_translation_z = prediction.gt_translation_z
 
