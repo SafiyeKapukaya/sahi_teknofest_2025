@@ -30,7 +30,7 @@ class ObjectDetectionModel:
         # self.model = get_keras_model() # Örnektir!
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.rgb_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\xlast.pt"
+        self.rgb_model_path = r"/TAKIM_BAGLANTI_ARAYUZU/_images/xlast.pt"
         self.termal_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\mehmet.pt"
         self.rgb_model = YOLO(self.rgb_model_path)
         self.termal_model = YOLO(self.termal_model_path)
