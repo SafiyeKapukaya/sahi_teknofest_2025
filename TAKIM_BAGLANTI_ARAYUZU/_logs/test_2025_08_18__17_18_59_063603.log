@@ -1,0 +1,43 @@
+2025-08-18 17:18:59,063 - INFO - Created Object Detection Model
+2025-08-18 17:18:59,468 - INFO - RGB ve Termal modelleri yüklendi
+2025-08-18 17:19:01,543 - INFO - Login Successfully Completed : {'username': 'test', 'password': 'testsifre'}
+2025-08-18 17:19:03,608 - INFO - Successful : get_frames : [{'health_status': 1, 'image_url': 'http://localhost:5000/static/frame_000000.jpg', 'session': 'http://localhost:5000/session/1/', 'translation_x': -8.719216549808553e-11, 'translation_y': -7.578731786631497e-11, 'translation_z': 0.0, 'url': 'http://localhost:5000/frames/1/', 'video_name': 'auto_session'}, {'health_status': 1, 'image_url': 'http://localhost:5000/static/frame_000004.jpg', 'session': 'http://localhost:5000/session/1/', 'translation_x': 0.0074174337733812, 'translation_y': 6.9284805232908e-11, 'translation_z': 0.0, 'url': 'http://localhost:5000/frames/2/', 'video_name': 'auto_session'}, {'health_status': 0, 'image_url': 'http://localhost:5000/static/frame_000008.jpg', 'session': 'http://localhost:5000/session/1/', 'translation_x': nan, 'translation_y': nan, 'translation_z': nan, 'url': 'http://localhost:5000/frames/3/', 'video_name': 'auto_session'}, {'health_status': 0, 'image_url': 'http://localhost:5000/static/frameoriginal2_0020.jpg', 'session': 'http://localhost:5000/session/1/', 'translation_x': nan, 'translation_y': nan, 'translation_z': nan, 'url': 'http://localhost:5000/frames/4/', 'video_name': 'auto_session'}, {'health_status': 0, 'image_url': 'http://localhost:5000/static/frameoriginal2_0025.jpg', 'session': 'http://localhost:5000/session/1/', 'translation_x': nan, 'translation_y': nan, 'translation_z': nan, 'url': 'http://localhost:5000/frames/5/', 'video_name': 'auto_session'}]
+2025-08-18 17:19:03,609 - INFO - auto_session json exists, returning..
+2025-08-18 17:19:03,610 - INFO - Frames saved to ./_images/auto_session/frames.json
+2025-08-18 17:19:05,648 - INFO - Successful : get_translations : [{'health_status': 1, 'translation_x': -8.719216549808553e-11, 'translation_y': -7.578731786631497e-11, 'translation_z': 0.0}, {'health_status': 1, 'translation_x': 0.0074174337733812, 'translation_y': 6.9284805232908e-11, 'translation_z': 0.0}, {'health_status': 0, 'translation_x': nan, 'translation_y': nan, 'translation_z': nan}, {'health_status': 0, 'translation_x': nan, 'translation_y': nan, 'translation_z': nan}, {'health_status': 0, 'translation_x': nan, 'translation_y': nan, 'translation_z': nan}]
+2025-08-18 17:19:05,649 - INFO - Translations saved to ./_images/auto_session/translations.json
+2025-08-18 17:19:05,652 - INFO - frame_000000.jpg already exists in ./_images/auto_session/, skipping download.
+2025-08-18 17:19:05,705 - INFO - Renk analizi - Ortalama fark: 13.04765464248971
+2025-08-18 17:19:05,710 - INFO - Görüntü tipi: _images\auto_session\frame_000000.jpg -> Normal
+2025-08-18 17:19:05,711 - INFO - Tespit edilen görüntü tipi: Normal
+2025-08-18 17:19:05,711 - INFO - RGB model seçildi - xlast.pt
+2025-08-18 17:19:11,622 - INFO - Prediction sent successfully. 
+	{"frame": "http://localhost:5000/frames/1/", "detected_objects": [{"cls": "http://localhost:5000/classes/3/", "landing_status": "0", "top_left_x": "279.58444", "top_left_y": "833.3502", "bottom_right_x": "429.89612", "bottom_right_y": "985.26917"}], "detected_translations": [{"translation_x": "-8.719216549808553e-11", "translation_y": "-7.578731786631497e-11", "translation_z": "0.0"}]}
+2025-08-18 17:19:11,622 - INFO - frame_000004.jpg already exists in ./_images/auto_session/, skipping download.
+2025-08-18 17:19:11,678 - INFO - Renk analizi - Ortalama fark: 13.096054205246913
+2025-08-18 17:19:11,683 - INFO - Görüntü tipi: _images\auto_session\frame_000004.jpg -> Normal
+2025-08-18 17:19:11,684 - INFO - Tespit edilen görüntü tipi: Normal
+2025-08-18 17:19:11,684 - INFO - RGB model seçildi - xlast.pt
+2025-08-18 17:19:16,248 - INFO - Prediction sent successfully. 
+	{"frame": "http://localhost:5000/frames/2/", "detected_objects": [{"cls": "http://localhost:5000/classes/3/", "landing_status": "0", "top_left_x": "280.41565", "top_left_y": "833.094", "bottom_right_x": "430.27704", "bottom_right_y": "984.6657"}], "detected_translations": [{"translation_x": "0.0074174337733812", "translation_y": "6.9284805232908e-11", "translation_z": "0.0"}]}
+2025-08-18 17:19:16,248 - INFO - frame_000008.jpg already exists in ./_images/auto_session/, skipping download.
+2025-08-18 17:19:16,295 - INFO - Renk analizi - Ortalama fark: 13.119196566358026
+2025-08-18 17:19:16,299 - INFO - Görüntü tipi: _images\auto_session\frame_000008.jpg -> Normal
+2025-08-18 17:19:16,299 - INFO - Tespit edilen görüntü tipi: Normal
+2025-08-18 17:19:16,299 - INFO - RGB model seçildi - xlast.pt
+2025-08-18 17:19:20,901 - INFO - Prediction sent successfully. 
+	{"frame": "http://localhost:5000/frames/3/", "detected_objects": [{"cls": "http://localhost:5000/classes/3/", "landing_status": "0", "top_left_x": "281.06653", "top_left_y": "832.4552", "bottom_right_x": "431.04626", "bottom_right_y": "984.3808"}], "detected_translations": [{"translation_x": "0.0", "translation_y": "0.0", "translation_z": "0.0"}]}
+2025-08-18 17:19:20,901 - INFO - frameoriginal2_0020.jpg already exists in ./_images/auto_session/, skipping download.
+2025-08-18 17:19:20,911 - INFO - Renk analizi - Ortalama fark: 0.0
+2025-08-18 17:19:20,912 - INFO - Görüntü tipi: _images\auto_session\frameoriginal2_0020.jpg -> Termal
+2025-08-18 17:19:20,912 - INFO - Tespit edilen görüntü tipi: Termal
+2025-08-18 17:19:20,912 - INFO - Termal model seçildi - mehmet.pt
+2025-08-18 17:19:23,211 - INFO - Prediction sent successfully. 
+	{"frame": "http://localhost:5000/frames/4/", "detected_objects": [{"cls": "http://localhost:5000/classes/1/", "landing_status": "-1", "top_left_x": "350.58374", "top_left_y": "165.18425", "bottom_right_x": "360.81775", "bottom_right_y": "177.02293"}, {"cls": "http://localhost:5000/classes/1/", "landing_status": "-1", "top_left_x": "236.7205", "top_left_y": "295.07828", "bottom_right_x": "247.4931", "bottom_right_y": "308.37183"}], "detected_translations": [{"translation_x": "-0.1517210248267958", "translation_y": "0.9293226790868161", "translation_z": "0.0"}]}
+2025-08-18 17:19:23,212 - INFO - frameoriginal2_0025.jpg already exists in ./_images/auto_session/, skipping download.
+2025-08-18 17:19:23,220 - INFO - Renk analizi - Ortalama fark: 0.0
+2025-08-18 17:19:23,221 - INFO - Görüntü tipi: _images\auto_session\frameoriginal2_0025.jpg -> Termal
+2025-08-18 17:19:23,221 - INFO - Tespit edilen görüntü tipi: Termal
+2025-08-18 17:19:23,221 - INFO - Termal model seçildi - mehmet.pt
+2025-08-18 17:19:25,288 - INFO - Prediction sent successfully. 
+	{"frame": "http://localhost:5000/frames/5/", "detected_objects": [], "detected_translations": []}

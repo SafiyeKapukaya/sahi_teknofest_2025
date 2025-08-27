@@ -29,8 +29,16 @@ class ObjectDetectionModel:
         # Modelinizi bu kısımda init edebilirsiniz.
         # self.model = get_keras_model() # Örnektir!
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = YOLO(r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\mehmet.pt")
-        self.model.to(self.device)
+
+        self.rgb_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\xlast.pt"
+        self.termal_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\mehmet.pt"
+        self.rgb_model = YOLO(self.rgb_model_path)
+        self.termal_model = YOLO(self.termal_model_path)
+
+        self.rgb_model.to(self.device)
+        self.termal_model.to(self.device)
+        logging.info('RGB ve Termal modelleri yüklendi')
+        self.current_model = None
 
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
@@ -64,6 +72,51 @@ class ObjectDetectionModel:
         else:
             logging.info(f'{image_name} already exists in {images_folder}, skipping download.')
 
+    def color_analysis(self, img):
+        """Görüntünün termal mi yoksa normal renkli mi olduğunu analiz eder"""
+        if len(img.shape) < 3 or img.shape[2] != 3:
+            return "Termal"
+
+        R = img[:, :, 2].astype(float)
+        G = img[:, :, 1].astype(float)
+        B = img[:, :, 0].astype(float)
+
+        fark_rg = np.abs(R - G)
+        fark_rb = np.abs(R - B)
+        fark_gb = np.abs(G - B)
+
+        ortalama_fark = (fark_rg.mean() + fark_rb.mean() + fark_gb.mean()) / 3
+
+        logging.info(f"Renk analizi - Ortalama fark: {ortalama_fark}")
+
+        if ortalama_fark <= 2.0:
+            return "Termal"
+        else:
+            return "Normal"
+
+    def detect_img_type(self, image_path):
+        """Görüntü tipini tespit eder"""
+        img = cv2.imread(image_path)
+        if img is None:
+            logging.warning(f"Görüntü açılamadı: {image_path}")
+            return "Bilinmeyen"
+
+        sonuc = self.color_analysis(img)
+        logging.info(f"Görüntü tipi: {image_path} -> {sonuc}")
+        return sonuc
+
+    def select_model_by_image_type(self, goruntu_tipi):
+        """Görüntü tipine göre uygun modeli seçer"""
+        if goruntu_tipi == "Termal":
+            self.current_model = self.termal_model
+            model_name = os.path.basename(self.termal_model_path)
+            logging.info(f"Termal model seçildi - {model_name}")
+        else:  # Normal RGB
+            self.current_model = self.rgb_model
+            model_name = os.path.basename(self.rgb_model_path)
+            logging.info(f"RGB model seçildi - {model_name}")
+        return self.current_model
+
     def process(self, prediction,evaluation_server_url,health_status, images_folder ,images_files, frame):
         # Yarışmacılar resim indirme, pre ve post process vb işlemlerini burada gerçekleştirebilir.
         # Download image (Ornek)
@@ -86,7 +139,15 @@ class ObjectDetectionModel:
         session_name = self.connectionHandler.get_session_name()
         image_filename = prediction.image_url.split('/')[-1]
         image_path = os.path.join('_images', session_name, image_filename)
-        results = self.model.predict(source=image_path, save=False, verbose=False, device=self.device)
+        # Görüntü tipi analizi eklendi
+        goruntu_tipi = self.goruntu_tipi_tespit(image_path)
+        logging.info(f"Tespit edilen görüntü tipi: {goruntu_tipi}")
+
+        # Görüntü tipine göre uygun modeli seç
+        selected_model = self.select_model_by_image_type(goruntu_tipi)
+
+        # Seçilen model ile nesne tespiti
+        results = selected_model.predict(source=image_path, save=False, verbose=False, device=self.device)
         frame = frame
         if len(results) == 0 or results[0].boxes is None or len(results[0].boxes) == 0:
             return prediction  # hiç tespit yoksa
@@ -96,12 +157,12 @@ class ObjectDetectionModel:
         detections = []
         for idx in range(len(boxes)):
             cls_id = int(classes[idx])
-            class_name = self.model.names[cls_id]
+            class_name = self.current_model.names[cls_id]
             objects = [class_name, boxes[idx]]
             detections.append(objects)
         for idx in range(len(boxes)):
             class_id = classes[idx]
-            class_name = self.model.names[class_id]  # class_name artık her nesne için alınır
+            class_name = self.current_model.names[class_id]  # class_name artık her nesne için alınır
 
             uap_or_uai_exists = False
 

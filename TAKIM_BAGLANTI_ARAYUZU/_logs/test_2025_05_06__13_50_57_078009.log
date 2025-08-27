@@ -1,7 +1,0 @@
-2025-05-06 13:50:57,079 - INFO - Created Object Detection Model
-2025-05-06 13:51:07,347 - ERROR - Login request failed: HTTPConnectionPool(host='10.147.40.102', port=5000): Max retries exceeded with url: /auth/ (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000011359F7A060>, 'Connection to 10.147.40.102 timed out. (connect timeout=10)'))
-2025-05-06 13:51:07,373 - INFO - Frames loaded from ./_images/test_session\frames.json
-2025-05-06 13:51:07,373 - INFO - Frames file exists. Loading frames from file.
-2025-05-06 13:51:07,393 - INFO - Translations loaded from ./_images/test_session\translations.json
-2025-05-06 13:51:07,394 - INFO - Translations file exists. Loading translations from file.
-2025-05-06 13:51:07,402 - INFO - frame_00001.jpg already exists, skipping download.
