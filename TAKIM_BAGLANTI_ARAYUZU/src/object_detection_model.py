@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 
 from ultralytics import YOLO
-
 from .constants import classes, landing_statuses
 
 from .visual_odometry import DroneTrajectoryEstimator
@@ -30,7 +29,7 @@ class ObjectDetectionModel:
         # self.model = get_keras_model() # Örnektir!
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.rgb_model_path = r"/TAKIM_BAGLANTI_ARAYUZU/_images/xlast.pt"
+        self.rgb_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\lastbest.pt"
         self.termal_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\mehmet.pt"
         self.rgb_model = YOLO(self.rgb_model_path)
         self.termal_model = YOLO(self.termal_model_path)
@@ -38,7 +37,11 @@ class ObjectDetectionModel:
         self.rgb_model.to(self.device)
         self.termal_model.to(self.device)
         logging.info('RGB ve Termal modelleri yüklendi')
+
+        # Model seçimi için gerekli değişkenler
         self.current_model = None
+        self.model_selected = False
+        self.image_type = None
 
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
@@ -49,23 +52,23 @@ class ObjectDetectionModel:
         # Eger indirecegimiz frame'i daha once indirmediysek indirme islemine gecelim
         if image_name not in images_files:
             for attempt in range(retries):
-                    try:
-                        response = requests.get(img_url, timeout=60)
-                        response.raise_for_status()
-                        
-                        img_bytes = response.content
-                        with open(images_folder + image_name, 'wb') as img_file:
-                            img_file.write(img_bytes)
+                try:
+                    response = requests.get(img_url, timeout=60)
+                    response.raise_for_status()
 
-                        t2 = time.perf_counter()
-                        logging.info(f'{img_url} - Download Finished in {t2 - t1} seconds to {images_folder + image_name}')
-                        return
+                    img_bytes = response.content
+                    with open(images_folder + image_name, 'wb') as img_file:
+                        img_file.write(img_bytes)
 
-                    except requests.exceptions.RequestException as e:
-                        logging.error(f"Download failed for {img_url} on attempt {attempt + 1}: {e}")
-                        logging.info(f"Retrying in {wait_time} seconds...")
-                        time.sleep(wait_time)
-                        wait_time *= 2
+                    t2 = time.perf_counter()
+                    logging.info(f'{img_url} - Download Finished in {t2 - t1} seconds to {images_folder + image_name}')
+                    return
+
+                except requests.exceptions.RequestException as e:
+                    logging.error(f"Download failed for {img_url} on attempt {attempt + 1}: {e}")
+                    logging.info(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                    wait_time *= 2
 
             logging.error(f"Failed to download image from {img_url} after {retries} attempts.")
         # Eger indirecegimiz frame'i daha once indirdiysek indirme yapmadan devam edebiliriz
@@ -106,7 +109,11 @@ class ObjectDetectionModel:
         return sonuc
 
     def select_model_by_image_type(self, goruntu_tipi):
-        """Görüntü tipine göre uygun modeli seçer"""
+        """Görüntü tipine göre uygun modeli seçer - sadece bir kere çalışır"""
+        if self.model_selected and self.image_type == goruntu_tipi:
+            # Model zaten seçildi ve tip aynı, tekrar seçim yapma
+            return self.current_model
+
         if goruntu_tipi == "Termal":
             self.current_model = self.termal_model
             model_name = os.path.basename(self.termal_model_path)
@@ -115,9 +122,14 @@ class ObjectDetectionModel:
             self.current_model = self.rgb_model
             model_name = os.path.basename(self.rgb_model_path)
             logging.info(f"RGB model seçildi - {model_name}")
+
+        # Model seçimini işaretle
+        self.model_selected = True
+        self.image_type = goruntu_tipi
+
         return self.current_model
 
-    def process(self, prediction,evaluation_server_url,health_status, images_folder ,images_files, frame):
+    def process(self, prediction, evaluation_server_url, health_status, images_folder, images_files, frame):
         # Yarışmacılar resim indirme, pre ve post process vb işlemlerini burada gerçekleştirebilir.
         # Download image (Ornek)
         if prediction.image_url.startswith("http"):
@@ -127,11 +139,11 @@ class ObjectDetectionModel:
 
         # Görüntüyü indir
         self.download_image(image_url, images_folder, images_files)
-        frame=frame
+        frame = frame
         # Örnek: Burada OpenCV gibi bir tool ile preprocessing işlemi yapılabilir. (Tercihe Bağlı)
         # ...
         # Nesne tespiti ve pozisyon kestirim modelinin bulunduğu fonksiyonun (self.detect() ) çağırılması burada olmalıdır.
-        frame_results = self.detect(prediction,health_status,frame)
+        frame_results = self.detect(prediction, health_status, frame)
         # Tahminler objesi FramePrediction sınıfında return olarak dönülmelidir.
         return frame_results
 
@@ -139,12 +151,15 @@ class ObjectDetectionModel:
         session_name = self.connectionHandler.get_session_name()
         image_filename = prediction.image_url.split('/')[-1]
         image_path = os.path.join('_images', session_name, image_filename)
-        # Görüntü tipi analizi eklendi
-        goruntu_tipi = self.goruntu_tipi_tespit(image_path)
-        logging.info(f"Tespit edilen görüntü tipi: {goruntu_tipi}")
 
-        # Görüntü tipine göre uygun modeli seç
-        selected_model = self.select_model_by_image_type(goruntu_tipi)
+        # Model seçimi - sadece ilk çalışmada veya görüntü tipi değiştiğinde çalışır
+        if not self.model_selected:
+            goruntu_tipi = self.detect_img_type(image_path)
+            logging.info(f"Tespit edilen görüntü tipi: {goruntu_tipi}")
+            selected_model = self.select_model_by_image_type(goruntu_tipi)
+        else:
+            # Model zaten seçili, direkt kullan
+            selected_model = self.current_model
 
         # Seçilen model ile nesne tespiti
         results = selected_model.predict(source=image_path, save=False, verbose=False, device=self.device)
@@ -189,7 +204,6 @@ class ObjectDetectionModel:
             top_left_y = boxes[idx][1]
             bottom_right_x = boxes[idx][2]
             bottom_right_y = boxes[idx][3]
-
 
             d_obj = DetectedObject(cls,
                                    landing_status,

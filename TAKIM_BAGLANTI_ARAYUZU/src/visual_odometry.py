@@ -51,6 +51,9 @@ class DroneTrajectoryEstimator:
 
         # Pozisyon tracking (XYZ - Z ekseni için)
         self.current_position = np.zeros(3, dtype=np.float64)  # [x, y, z]
+        
+        # *** STEP 1: Drone'un yönelim (orientation) durumunu takip etmek için yeni state değişkeni ***
+        self.current_angle = 0.0  # Drone'un mutlak yaw açısı (radyan cinsinden)
 
         # Manuel scale ayarları
         self.scale = np.array([manual_scale, manual_scale])
@@ -62,6 +65,10 @@ class DroneTrajectoryEstimator:
 
         # Z ekseni için son alınan değer
         self.last_known_z = 0.0
+        
+        # *** NEW: Z-axis estimation state variables ***
+        self.filtered_z = 0.0  # EMA filtered altitude estimate
+        self.ema_alpha = 0.1  # EMA filter parameter (0.1 provides good smoothing)
 
     def process_frame(self, frame, health_status, gt_position=None):
         """
@@ -81,6 +88,8 @@ class DroneTrajectoryEstimator:
             self.current_position = gt_position.copy()
             # Z değerini kaydet (sonraki GPS olmayan frame'ler için)
             self.last_known_z = gt_position[2]
+            # *** NEW: Reset EMA filter state with accurate GPS altitude ***
+            self.filtered_z = gt_position[2]  # Sync filtered altitude with GPS data
             return self.current_position
 
         # Sağlık durumu 0 ise (GPS yok) visual odometry kullan
@@ -151,6 +160,26 @@ class DroneTrajectoryEstimator:
             dx, dy = M[0, 2], M[1, 2]
             dx = -dx  # X ekseni düzeltmesi
 
+            # *** STEP 2: Rotasyon bilgisini affine matrix'ten çıkar ***
+            # Drone'un frame'ler arası dönüş açısını hesapla
+            d_theta = np.arctan2(M[1, 0], M[0, 0])
+
+            # *** NEW: Extract scale factor for Z-axis estimation ***
+            # Calculate the scale factor from the affine transformation matrix
+            s = np.sqrt(M[0, 0]**2 + M[0, 1]**2)
+            
+            # Safety check to prevent division by zero or invalid scale values
+            if s < 0.01:
+                s = 1.0  # Use neutral scale if value is too small
+            
+            # Calculate raw altitude estimate based on scale change
+            # Scale decrease means drone moved up (objects appear smaller)
+            # Scale increase means drone moved down (objects appear larger)
+            raw_z = self.current_position[2] / s
+            
+            # Apply EMA filter to smooth the noisy raw Z estimate
+            self.filtered_z = self.ema_alpha * raw_z + (1 - self.ema_alpha) * self.filtered_z
+
             # Outlier kontrolü
             velocity_magnitude = np.sqrt(dx**2 + dy**2)
             if velocity_magnitude > self.max_velocity:
@@ -162,12 +191,35 @@ class DroneTrajectoryEstimator:
             scaled_dx = dx * self.scale[0]
             scaled_dy = dy * self.scale[1]
 
-            # Pozisyonu güncelle (sadece X ve Y)
-            self.current_position[0] += scaled_dx
-            self.current_position[1] += scaled_dy
+            # *** STEP 3: Local frame'deki hareketi world frame'e dönüştür ***
+            # scaled_dx ve scaled_dy drone'un local (body) frame'indeki hareket
+            # Bu değerleri drone'un mevcut yönelimi ile world frame'e çevir
+            dx_world = scaled_dx * np.cos(self.current_angle) - scaled_dy * np.sin(self.current_angle)
+            dy_world = scaled_dx * np.sin(self.current_angle) + scaled_dy * np.cos(self.current_angle)
 
-        # Z değerini koru
-        self.current_position[2] = self.last_known_z
+            # *** World frame'deki hareket ile global pozisyonu güncelle ***
+            self.current_position[0] += dx_world
+            self.current_position[1] += dy_world
+
+            # *** STEP 4: Drone'un mutlak yönelimini güncelle ***
+            self.current_angle += d_theta
+            
+            # *** NEW: Update Z-axis position with filtered altitude estimate ***
+            self.current_position[2] = self.filtered_z
+            
+            # Debug için yönelim bilgisini yazdır (isteğe bağlı)
+            if hasattr(self, '_debug_counter'):
+                self._debug_counter += 1
+            else:
+                self._debug_counter = 1
+                
+            if self._debug_counter % 50 == 0:  # Her 50 frame'de bir yazdır
+                angle_degrees = np.degrees(self.current_angle) % 360
+                print(f"Frame {self._debug_counter}: Angle = {angle_degrees:.1f}°, dθ = {np.degrees(d_theta):.2f}°, Scale = {s:.3f}, Z = {self.filtered_z:.2f}")
+
+        else:
+            # *** NEW: If no valid transformation, keep using filtered Z value ***
+            self.current_position[2] = self.filtered_z
 
         # Bir sonraki frame için güncelle
         self.prev_keypoints = keypoints
@@ -222,13 +274,25 @@ class DroneTrajectoryEstimator:
         """Mevcut pozisyonu döndür"""
         return self.current_position.copy()
 
+    def get_current_angle(self):
+        """Mevcut yönelim açısını döndür (radyan)"""
+        return self.current_angle
+
+    def get_current_angle_degrees(self):
+        """Mevcut yönelim açısını derece cinsinden döndür"""
+        return np.degrees(self.current_angle) % 360
+
     def reset(self):
         """Estimator'ı sıfırla"""
         self.prev_keypoints = None
         self.prev_descriptors = None
         self.prev_frame = None
         self.current_position = np.zeros(3, dtype=np.float64)
+        # *** STEP 5: Reset işleminde yönelim açısını da sıfırla ***
+        self.current_angle = 0.0
         self.last_known_z = 0.0
+        # *** NEW: Reset filtered altitude state ***
+        self.filtered_z = 0.0  # Reset EMA filter state
 
 
 # Yarışma için kullanım örneği
@@ -257,8 +321,9 @@ def competition_example():
         else:  # Son kısım - daha az GPS
             health_status = 1 if frame_idx % 10 < 2 else 0  # %20 GPS var
 
-        # GPS varsa pozisyon ver
-        gt_position = np.array([frame_idx * 0.1, frame_idx * 0.05, 50.0]) if health_status == 1 else None
+        # GPS varsa pozisyon ver (Z ekseni de değişken altitude simüle eder)
+        base_altitude = 50.0 + 10.0 * np.sin(frame_idx * 0.01)  # Varying altitude
+        gt_position = np.array([frame_idx * 0.1, frame_idx * 0.05, base_altitude]) if health_status == 1 else None
 
         # Frame'i işle
         estimated_position = estimator.process_frame(frame, health_status, gt_position)
@@ -269,11 +334,12 @@ def competition_example():
         # Debug için yazdır
         if frame_idx % 100 == 0:
             status_text = "GPS VAR" if health_status == 1 else "GPS YOK"
+            angle_deg = estimator.get_current_angle_degrees()
             print(
-                f"Frame {frame_idx}: {status_text}, Position=({estimated_position[0]:.2f}, {estimated_position[1]:.2f}, {estimated_position[2]:.2f})")
+                f"Frame {frame_idx}: {status_text}, Position=({estimated_position[0]:.2f}, {estimated_position[1]:.2f}, {estimated_position[2]:.2f}), Angle={angle_deg:.1f}°")
 
     print("Yarışma simülasyonu tamamlandı!")
 
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     competition_example()
