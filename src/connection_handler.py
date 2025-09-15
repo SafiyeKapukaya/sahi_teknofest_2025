@@ -48,7 +48,7 @@ class ConnectionHandler:
         found = False
         change = False
         # iterates over the lines, enters the condition on session_name line
-        with open("C:/Users/atala/PycharmProjects/sahi_teknofest_2025/TAKIM_BAGLANTI_ARAYUZU/config/.env", "r+") as f:
+        with open("C:/Users/atala/PycharmProjects/sahi_teknofest_2025/config/.env", "r+") as f:
             lines = f.readlines()
             for i, line in enumerate(lines):
                 # line check
@@ -82,7 +82,7 @@ class ConnectionHandler:
     def get_session_name(self):
         # Config dosyasi icinde tanimlanmis olan oturum ismini cekelim.
         # Oturum ismi config dosyasi icinde tanimlanmamissa sunucuya istek atarak cekilir.
-        config.search_path = "C:/Users/atala/PycharmProjects/sahi_teknofest_2025/TAKIM_BAGLANTI_ARAYUZU/config"
+        config.search_path = "C:/Users/atala/PycharmProjects/sahi_teknofest_2025/config"
         return config("SESSION_NAME")
 
     def create_img_folder(self, path):

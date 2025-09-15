@@ -4,24 +4,19 @@ import requests
 import torch
 import cv2
 import numpy as np
-
+import os
 from ultralytics import YOLO
-from .constants import classes, landing_statuses
 
-from .visual_odometry import DroneTrajectoryEstimator
+from .constants import classes, landing_statuses
 from .detected_object import DetectedObject
 from .detected_translation import DetectedTranslation
 from .landingg import check_landing_conditions
-import os
-
 from .connection_handler import ConnectionHandler
-
 
 class ObjectDetectionModel:
     # Base class for team models
 
     def __init__(self, evaluation_server_url):
-        self.trajectory_estimator = DroneTrajectoryEstimator()
         self.connectionHandler = ConnectionHandler(evaluation_server_url)
         logging.info('Created Object Detection Model')
         self.evaulation_server = evaluation_server_url
@@ -29,8 +24,8 @@ class ObjectDetectionModel:
         # self.model = get_keras_model() # Örnektir!
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.rgb_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\lastbest.pt"
-        self.termal_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\mehmet.pt"
+        self.rgb_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\rgb_best.pt"
+        self.termal_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\rgb_alternative.pt"
         self.rgb_model = YOLO(self.rgb_model_path)
         self.termal_model = YOLO(self.termal_model_path)
 
@@ -42,6 +37,11 @@ class ObjectDetectionModel:
         self.current_model = None
         self.model_selected = False
         self.image_type = None
+        self.trajectory_estimator = None
+        self.processed_images_count = 0
+        self.rgb_count = 0
+        self.termal_count = 0
+        self.max_analysis_images = 10
 
     @staticmethod
     def download_image(img_url, images_folder, images_files, retries=3, initial_wait_time=0.1):
@@ -108,26 +108,97 @@ class ObjectDetectionModel:
         logging.info(f"Görüntü tipi: {image_path} -> {sonuc}")
         return sonuc
 
-    def select_model_by_image_type(self, goruntu_tipi):
-        """Görüntü tipine göre uygun modeli seçer - sadece bir kere çalışır"""
-        if self.model_selected and self.image_type == goruntu_tipi:
-            # Model zaten seçildi ve tip aynı, tekrar seçim yapma
-            return self.current_model
+    def analyze_first_images_and_select_model(self, image_path):
+        """İlk 10 görüntüyü analiz ederek model seçimi yapar"""
+        if self.processed_images_count < self.max_analysis_images:
+            goruntu_tipi = self.detect_img_type(image_path)
 
-        if goruntu_tipi == "Termal":
-            self.current_model = self.termal_model
-            model_name = os.path.basename(self.termal_model_path)
-            logging.info(f"Termal model seçildi - {model_name}")
-        else:  # Normal RGB
-            self.current_model = self.rgb_model
-            model_name = os.path.basename(self.rgb_model_path)
-            logging.info(f"RGB model seçildi - {model_name}")
+            if goruntu_tipi == "Termal":
+                self.termal_count += 1
+                # Termal görüntü tespit edilirse hemen termal model kullan
+                current_model_for_this_image = self.termal_model
+                logging.info(f"Termal görüntü tespit edildi, termal model kullanılıyor: {image_path}")
+            elif goruntu_tipi == "Normal":
+                self.rgb_count += 1
+                # Normal görüntü tespit edilirse RGB model kullan
+                current_model_for_this_image = self.rgb_model
+                logging.info(f"Normal görüntü tespit edildi, RGB model kullanılıyor: {image_path}")
+            else:
+                # Bilinmeyen durumda varsayılan olarak RGB model kullan
+                current_model_for_this_image = self.rgb_model
+                logging.warning(f"Bilinmeyen görüntü tipi, varsayılan RGB model kullanılıyor: {image_path}")
 
-        # Model seçimini işaretle
-        self.model_selected = True
-        self.image_type = goruntu_tipi
+            self.processed_images_count += 1
+            logging.info(
+                f"Analiz edilen görüntü: {self.processed_images_count}/{self.max_analysis_images}, RGB: {self.rgb_count}, Termal: {self.termal_count}")
 
+            # 10 görüntü analiz edildiğinde model seçimini kesinleştir
+            if self.processed_images_count >= self.max_analysis_images:
+                self.finalize_model_selection()
+
+            return current_model_for_this_image
+
+        # Eğer 10 görüntü analizi tamamlandıysa seçilmiş modeli döndür
         return self.current_model
+
+    def finalize_model_selection(self):
+        """İlk 10 görüntünün analizi sonucunda model seçimini kesinleştir"""
+        if self.rgb_count > self.termal_count:
+            self.current_model = self.rgb_model
+            self.image_type = "Normal"
+            model_name = os.path.basename(self.rgb_model_path)
+            logging.info(f"RGB model seçildi - {model_name} (RGB: {self.rgb_count}, Termal: {self.termal_count})")
+
+            # RGB Visual Odometry import et
+            try:
+                from .rgb_visual_odometry import DroneTrajectoryEstimator
+                self.trajectory_estimator = DroneTrajectoryEstimator()
+                logging.info("RGB Visual Odometry yüklendi")
+            except ImportError as e:
+                logging.error(f"RGB Visual Odometry yüklenemedi: {e}")
+
+        else:
+            self.current_model = self.termal_model
+            self.image_type = "Termal"
+            model_name = os.path.basename(self.termal_model_path)
+            logging.info(f"Termal model seçildi - {model_name} (RGB: {self.rgb_count}, Termal: {self.termal_count})")
+
+            # Termal Visual Odometry import et
+            try:
+                from .termal_visual_odometry import DroneTrajectoryEstimator
+                self.trajectory_estimator = DroneTrajectoryEstimator()
+                logging.info("Termal Visual Odometry yüklendi")
+            except ImportError as e:
+                logging.error(f"Termal Visual Odometry yüklenemedi: {e}")
+
+        self.model_selected = True
+
+    def boxes_overlap(self, box1, box2):
+        """İki kutunun çakışıp çakışmadığını kontrol eder (landingg.py'den alınan fonksiyon)"""
+        x1_max = max(box1[0], box2[0])
+        y1_max = max(box1[1], box2[1])
+        x2_min = min(box1[2], box2[2])
+        y2_min = min(box1[3], box2[3])
+        return x2_min > x1_max and y2_min > y1_max
+
+    def check_bounding_box_overlap_only(self, detections, current_idx):
+        """Termal model için sadece bounding box çakışması kontrolü"""
+        # UAP/UAI alanlarını ve diğer nesneleri ayır
+        landing_zones = [det for det in detections if det[0] in ["uap", "uai"]]
+        other_objects = [det for det in detections if det[0] not in ["uap", "uai"]]
+
+        # Eğer hiç UAP/UAI yoksa iniş yapılamaz
+        if not landing_zones:
+            return "0"
+
+        # İlk UAP/UAI alanını kontrol et
+        zone_bbox = landing_zones[0][1]
+
+        # Diğer nesnelerle çakışma kontrolü
+        overlap = any(self.boxes_overlap(zone_bbox, obj[1]) for obj in other_objects)
+
+        # Çakışma yoksa iniş yapılabilir
+        return "0" if overlap else "1"
 
     def process(self, prediction, evaluation_server_url, health_status, images_folder, images_files, frame):
         # Yarışmacılar resim indirme, pre ve post process vb işlemlerini burada gerçekleştirebilir.
@@ -152,17 +223,18 @@ class ObjectDetectionModel:
         image_filename = prediction.image_url.split('/')[-1]
         image_path = os.path.join('_images', session_name, image_filename)
 
-        # Model seçimi - sadece ilk çalışmada veya görüntü tipi değiştiğinde çalışır
+        # Model seçimi - ilk 10 görüntüyü analiz et
         if not self.model_selected:
-            goruntu_tipi = self.detect_img_type(image_path)
-            logging.info(f"Tespit edilen görüntü tipi: {goruntu_tipi}")
-            selected_model = self.select_model_by_image_type(goruntu_tipi)
+            selected_model = self.analyze_first_images_and_select_model(image_path)
+            if selected_model is None:
+                # Henüz model seçimi yapılmadı, geçici olarak RGB model kullan
+                selected_model = self.rgb_model
         else:
             # Model zaten seçili, direkt kullan
             selected_model = self.current_model
 
         # Seçilen model ile nesne tespiti
-        results = selected_model.predict(source=image_path, save=False, verbose=False, device=self.device)
+        results = selected_model.predict(source=image_path, save=False, verbose=False, device="cuda")
         frame = frame
         if len(results) == 0 or results[0].boxes is None or len(results[0].boxes) == 0:
             return prediction  # hiç tespit yoksa
@@ -172,12 +244,12 @@ class ObjectDetectionModel:
         detections = []
         for idx in range(len(boxes)):
             cls_id = int(classes[idx])
-            class_name = self.current_model.names[cls_id]
+            class_name = selected_model.names[cls_id]
             objects = [class_name, boxes[idx]]
             detections.append(objects)
         for idx in range(len(boxes)):
             class_id = classes[idx]
-            class_name = self.current_model.names[class_id]  # class_name artık her nesne için alınır
+            class_name = selected_model.names[class_id]  # class_name artık her nesne için alınır
 
             uap_or_uai_exists = False
 
@@ -217,7 +289,7 @@ class ObjectDetectionModel:
             pred_translation_y = 0.0
             pred_translation_z = 0.0
 
-        if str(health_status) == '0':
+        if str(health_status) == '0' and self.trajectory_estimator is not None:
             frame_bgr = cv2.imread(image_path)
             print(f"Image path: {image_path}, image loaded: {frame_bgr is not None}")
             if frame_bgr is not None:

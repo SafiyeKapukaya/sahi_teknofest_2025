@@ -19,7 +19,7 @@ def configure_logger(team_name):
 def run():
     print("Started...")
     # .env dosyasından konfigurasyon icin gereken bilgileri cek
-    config.search_path = "C:/Users/atala/PycharmProjects/sahi_teknofest_2025/TAKIM_BAGLANTI_ARAYUZU/config"
+    config.search_path = "C:/Users/atala/PycharmProjects/sahi_teknofest_2025/config"
     team_name = config('TEAM_NAME')
     password = config('PASSWORD')
     evaluation_server_url = config("EVALUATION_SERVER_URL")

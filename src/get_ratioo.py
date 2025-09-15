@@ -3,6 +3,7 @@ import numpy as np
 import os
 import csv
 from glob import glob
+
 def get_blue_white_ratio(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
