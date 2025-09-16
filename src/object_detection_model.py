@@ -25,7 +25,7 @@ class ObjectDetectionModel:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.rgb_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\rgb_best.pt"
-        self.termal_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\rgb_alternative.pt"
+        self.termal_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\termal_best.pt"
         self.rgb_model = YOLO(self.rgb_model_path)
         self.termal_model = YOLO(self.termal_model_path)
 
@@ -235,42 +235,195 @@ class ObjectDetectionModel:
 
         # Seçilen model ile nesne tespiti
         results = selected_model.predict(source=image_path, save=False, verbose=False, device="cuda")
+
+        # TRANSLATION HESAPLAMASI - HİÇ DETECTİON OLMASA BİLE YAPILMALI
+        pred_translation_x = 0.0
+        pred_translation_y = 0.0
+        pred_translation_z = 0.0
+
+        try:
+            # Health status kontrolü
+            # health_status=1: GT güvenilir, kullan
+            # health_status=0: GT güvenilir değil (NaN), visual odometry kullan
+            if str(health_status) == '0' and self.trajectory_estimator is not None:
+                # Kamera arızalı/GPS yok, visual odometry ile tahmin et
+                frame_bgr = cv2.imread(image_path)
+                logging.info(f"Visual odometry için görüntü yüklendi: {frame_bgr is not None}")
+                if frame_bgr is not None:
+                    estimated_position = self.trajectory_estimator.process_frame(frame_bgr, 0, None)
+                    logging.info(f"Tahmin edilen pozisyon: {estimated_position}")
+                    if estimated_position is not None and not np.any(np.isnan(estimated_position)):
+                        pred_translation_x = float(estimated_position[0])
+                        pred_translation_y = float(estimated_position[1])
+                        pred_translation_z = float(estimated_position[2])
+                        logging.info(
+                            f"Visual odometry başarılı: ({pred_translation_x}, {pred_translation_y}, {pred_translation_z})")
+                    else:
+                        logging.warning("Visual odometry None/NaN döndü, sıfır değerleri kullanılıyor")
+                else:
+                    logging.error(f"Görüntü yüklenemedi: {image_path}")
+            else:
+                # Kamera sağlıklı (health_status=1) veya visual odometry yok, GT kullan
+                gt_x = prediction.gt_translation_x
+                gt_y = prediction.gt_translation_y
+                gt_z = prediction.gt_translation_z
+
+                # GT değerleri NaN değilse kullan (normalde health_status=1'de NaN olmamalı)
+                if not (np.isnan(gt_x) or np.isnan(gt_y) or np.isnan(gt_z)):
+                    pred_translation_x = gt_x
+                    pred_translation_y = gt_y
+                    pred_translation_z = gt_z
+                    logging.info(
+                        f"GT translation kullanıldı: ({pred_translation_x}, {pred_translation_y}, {pred_translation_z})")
+                else:
+                    # GT NaN ise (beklenmeyen durum), sıfır kullan
+                    logging.warning("GT translation beklenmedik şekilde NaN, sıfır değerleri kullanılıyor")
+
+        except Exception as e:
+            logging.error(f"Translation hesaplama hatası: {e}")
+            pred_translation_x = pred_translation_y = pred_translation_z = 0.0
+
+        # Translation objesini her durumda ekle
+        trans_obj = DetectedTranslation(pred_translation_x, pred_translation_y, pred_translation_z)
+        prediction.add_translation_object(trans_obj)
+        logging.info(f"Translation objesi eklendi: ({pred_translation_x}, {pred_translation_y}, {pred_translation_z})")
+
         frame = frame
         if len(results) == 0 or results[0].boxes is None or len(results[0].boxes) == 0:
-            return prediction  # hiç tespit yoksa
+            return prediction  # hiç tespit yoksa ama translation zaten eklendi
 
         boxes = results[0].boxes.xyxy.cpu().numpy()  # numpy format
         classes = results[0].boxes.cls.cpu().numpy()
+        confidences = results[0].boxes.conf.cpu().numpy()  # Confidence skorları
+
+        # CLASS ÖZEL THRESHOLD UYGULA (RGB VE TERMAL MODELLERİ İÇİN)
+        current_image_type = getattr(self, 'image_type', 'Normal')
+
+        if selected_model == self.rgb_model or current_image_type == "Normal":
+            # RGB model için class özel threshold'lar
+            class_thresholds = {
+                'gemi': 0.55,
+                'ikiteker': 0.1,
+                'ismakinesi': 0.55,
+                'kamyon': 0.55,
+                'otobus': 0.55,
+                'otomobil': 0.55,
+                'tekne': 0.55,
+                'vagon': 0.55,
+                'insan': 0.35,
+                'uap': 0.65,
+                'uai': 0.65,
+                'default': 0.2
+            }
+            model_type_name = "RGB"
+
+        elif selected_model == self.termal_model or current_image_type == "Termal":
+            # TERMAL model için class özel threshold'lar (farklı değerler)
+            class_thresholds = {
+                'gemi': 0.3,
+                'ikiteker': 0.25,
+                'ismakinesi': 0.2,
+                'kamyon': 0.3,
+                'otobus': 0.3,
+                'otomobil': 0.35,
+                'tekne': 0.35,
+                'vagon': 0.3,
+                'insan': 0.1,
+                'uap': 0.65,
+                'uai': 0.65,
+                'default': 0.2
+            }
+            model_type_name = "TERMAL"
+        else:
+            # Bilinmeyen model tipi için varsayılan değerler
+            class_thresholds = {
+                'default': 0.4
+            }
+            model_type_name = "VARSAYILAN"
+
+        # Threshold uygulama
+        valid_indices = []
+        original_count = len(boxes)
+
+        for idx in range(len(boxes)):
+            cls_id = int(classes[idx])
+            class_name = selected_model.names[cls_id]
+            confidence = confidences[idx]
+
+            # Bu class için threshold değerini al
+            threshold = class_thresholds.get(class_name, class_thresholds['default'])
+
+            if confidence >= threshold:
+                valid_indices.append(idx)
+                logging.info(f"✓ {model_type_name} - {class_name}: {confidence:.3f} >= {threshold} (GEÇTİ)")
+            else:
+                logging.info(f"✗ {model_type_name} - {class_name}: {confidence:.3f} < {threshold} (ELENDİ)")
+
+        # Geçerli indekslere göre filtrele
+        if valid_indices:
+            valid_indices = np.array(valid_indices)
+            boxes = boxes[valid_indices]
+            classes = classes[valid_indices]
+            confidences = confidences[valid_indices]
+        else:
+            # Hiçbir detection threshold'u geçmediyse boş array'ler oluştur
+            boxes = np.array([]).reshape(0, 4)
+            classes = np.array([])
+            confidences = np.array([])
+
+        logging.info(
+            f"{model_type_name} model class-özel threshold uygulandı: {original_count} -> {len(boxes)} detection kaldı")
+
+        # Eğer threshold sonrası hiç detection kalmadıysa
+        if len(boxes) == 0:
+            logging.info("Threshold sonrası hiç detection kalmadı")
+            return prediction
+
         detections = []
         for idx in range(len(boxes)):
             cls_id = int(classes[idx])
             class_name = selected_model.names[cls_id]
+            confidence = confidences[idx]
             objects = [class_name, boxes[idx]]
             detections.append(objects)
+
         for idx in range(len(boxes)):
             class_id = classes[idx]
-            class_name = selected_model.names[class_id]  # class_name artık her nesne için alınır
+            class_name = selected_model.names[class_id]
+            confidence = confidences[idx]
 
-            uap_or_uai_exists = False
+            logging.info(f"Detection: {class_name} - Confidence: {confidence:.3f}")
 
-            if class_name in ['gemi', 'ikiteker', 'ismakinesi', 'kamyon', 'otobus', 'otomobil', 'scooter', 'tekne',
+            if class_name in ['gemi', 'ikiteker', 'ismakinesi', 'kamyon', 'otobus', 'otomobil', 'tekne',
                               'vagon']:
                 cls = 0
             elif class_name == "insan":
                 cls = 1
             elif class_name == "uai":
                 cls = 3
-                uap_or_uai_exists = True
             else:
                 cls = 2
-                uap_or_uai_exists = True
 
             if cls not in [2, 3]:
                 landing_status = "-1"
             else:
-                # detection'lar frame için bir kerede hesaplanmalı, her kutu için değil
-                # o yüzden bu fonksiyon döngü dışında 1 kez çağrılmalı, istersen yukarı alabilirim
-                landing_status = check_landing_conditions(detections, frame["image_url"])
+                # İniş durumu kontrolü - model tipine göre farklı algoritma
+                current_image_type = getattr(self, 'image_type', 'Normal')
+
+                if current_image_type == "Normal":  # RGB model
+                    # RGB modelinde hem çakışma kontrolü hem de renk oranı kontrolü
+                    try:
+                        landing_status = check_landing_conditions(detections, frame["image_url"])
+                    except Exception as e:
+                        logging.error(f"RGB landing condition kontrolü hatası: {e}")
+                        landing_status = "0"
+                else:  # Termal model
+                    # Termal modelinde sadece bounding box çakışması kontrolü
+                    try:
+                        landing_status = self.check_bounding_box_overlap_only(detections, idx)
+                    except Exception as e:
+                        logging.error(f"Termal landing condition kontrolü hatası: {e}")
+                        landing_status = "0"
 
             top_left_x = boxes[idx][0]
             top_left_y = boxes[idx][1]
@@ -284,34 +437,5 @@ class ObjectDetectionModel:
                                    bottom_right_x,
                                    bottom_right_y)
             prediction.add_detected_object(d_obj)
-
-            pred_translation_x = 0.0
-            pred_translation_y = 0.0
-            pred_translation_z = 0.0
-
-        if str(health_status) == '0' and self.trajectory_estimator is not None:
-            frame_bgr = cv2.imread(image_path)
-            print(f"Image path: {image_path}, image loaded: {frame_bgr is not None}")
-            if frame_bgr is not None:
-                estimated_position = self.trajectory_estimator.process_frame(frame_bgr, 0, None)
-                print(f"Estimated position from process_frame: {estimated_position}")
-                if estimated_position is not None and not np.any(np.isnan(estimated_position)):
-                    pred_translation_x = float(estimated_position[0])
-                    pred_translation_y = float(estimated_position[1])
-                    pred_translation_z = float(estimated_position[2])
-                else:
-                    print("[UYARI] Estimated position is None or contains NaN, setting zeros.")
-                    pred_translation_x = pred_translation_y = pred_translation_z = 0.0
-            else:
-                print("[HATA] Image could not be loaded, setting zeros.")
-                pred_translation_x = pred_translation_y = pred_translation_z = 0.0
-        else:
-            pred_translation_x = prediction.gt_translation_x
-            pred_translation_y = prediction.gt_translation_y
-            pred_translation_z = prediction.gt_translation_z
-
-        # Translation icin hesaplanilan degerleri sunucuya gondermek icin ilgili objeye dolduralim.
-        trans_obj = DetectedTranslation(pred_translation_x, pred_translation_y, pred_translation_z)
-        prediction.add_translation_object(trans_obj)
 
         return prediction
