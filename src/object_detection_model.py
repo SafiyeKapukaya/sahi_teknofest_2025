@@ -24,8 +24,8 @@ class ObjectDetectionModel:
         # self.model = get_keras_model() # Örnektir!
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.rgb_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\rgb_best.pt"
-        self.termal_model_path = r"C:\Users\atala\PycharmProjects\sahi_teknofest_2025\models\termal_best.pt"
+        self.rgb_model_path = "C:/Users/atala/PycharmProjects/sahi_teknofest_2025/models/rgb_best.pt"
+        self.termal_model_path = "C:/Users/atala/PycharmProjects/sahi_teknofest_2025/models/termal_best.pt"
         self.rgb_model = YOLO(self.rgb_model_path)
         self.termal_model = YOLO(self.termal_model_path)
 
@@ -246,39 +246,47 @@ class ObjectDetectionModel:
             # health_status=1: GT güvenilir, kullan
             # health_status=0: GT güvenilir değil (NaN), visual odometry kullan
             if str(health_status) == '0' and self.trajectory_estimator is not None:
-                # Kamera arızalı/GPS yok, visual odometry ile tahmin et
                 frame_bgr = cv2.imread(image_path)
-                logging.info(f"Visual odometry için görüntü yüklendi: {frame_bgr is not None}")
+                logging.info(f"Visual odometry için frame yüklendi: {frame_bgr is not None}")
                 if frame_bgr is not None:
                     estimated_position = self.trajectory_estimator.process_frame(frame_bgr, 0, None)
-                    logging.info(f"Tahmin edilen pozisyon: {estimated_position}")
+                    logging.info(f"Visual odometry döndürdü: {estimated_position}")
+                    logging.info(f"estimated_position is None: {estimated_position is None}")
+                    logging.info(
+                        f"contains NaN: {np.any(np.isnan(estimated_position)) if estimated_position is not None else 'N/A'}")
+
                     if estimated_position is not None and not np.any(np.isnan(estimated_position)):
                         pred_translation_x = float(estimated_position[0])
                         pred_translation_y = float(estimated_position[1])
                         pred_translation_z = float(estimated_position[2])
                         logging.info(
-                            f"Visual odometry başarılı: ({pred_translation_x}, {pred_translation_y}, {pred_translation_z})")
+                            f"Visual odometry değerleri kullanıldı: ({pred_translation_x}, {pred_translation_y}, {pred_translation_z})")
                     else:
                         logging.warning("Visual odometry None/NaN döndü, sıfır değerleri kullanılıyor")
+                        pred_translation_x = pred_translation_y = pred_translation_z = 0.0
                 else:
-                    logging.error(f"Görüntü yüklenemedi: {image_path}")
+                    logging.error("Frame yüklenemedi, sıfır değerleri kullanılıyor")
+                    pred_translation_x = pred_translation_y = pred_translation_z = 0.0
             else:
-                # Kamera sağlıklı (health_status=1) veya visual odometry yok, GT kullan
-                gt_x = prediction.gt_translation_x
-                gt_y = prediction.gt_translation_y
-                gt_z = prediction.gt_translation_z
-
-                # GT değerleri NaN değilse kullan (normalde health_status=1'de NaN olmamalı)
-                if not (np.isnan(gt_x) or np.isnan(gt_y) or np.isnan(gt_z)):
-                    pred_translation_x = gt_x
-                    pred_translation_y = gt_y
-                    pred_translation_z = gt_z
                     logging.info(
-                        f"GT translation kullanıldı: ({pred_translation_x}, {pred_translation_y}, {pred_translation_z})")
-                else:
-                    # GT NaN ise (beklenmeyen durum), sıfır kullan
-                    logging.warning("GT translation beklenmedik şekilde NaN, sıfır değerleri kullanılıyor")
+                        f"GT translation kullanılıyor - health_status: {health_status}, trajectory_estimator: {self.trajectory_estimator is not None}")
 
+                    # BU SATIRLAR EKSİK:
+                    gt_x = prediction.gt_translation_x
+                    gt_y = prediction.gt_translation_y
+                    gt_z = prediction.gt_translation_z
+                    logging.info(f"GT değerleri: x={gt_x}, y={gt_y}, z={gt_z}")
+
+                    # GT değerleri NaN değilse kullan (normalde health_status=1'de NaN olmamalı)
+                    if not (np.isnan(gt_x) or np.isnan(gt_y) or np.isnan(gt_z)):
+                        pred_translation_x = gt_x
+                        pred_translation_y = gt_y
+                        pred_translation_z = gt_z
+                        logging.info(
+                            f"GT translation kullanıldı: ({pred_translation_x}, {pred_translation_y}, {pred_translation_z})")
+                    else:
+                        # GT NaN ise (beklenmeyen durum), sıfır kullan
+                        logging.warning("GT translation beklenmedik şekilde NaN, sıfır değerleri kullanılıyor")
         except Exception as e:
             logging.error(f"Translation hesaplama hatası: {e}")
             pred_translation_x = pred_translation_y = pred_translation_z = 0.0
